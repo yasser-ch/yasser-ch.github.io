@@ -272,9 +272,105 @@
   .lb-close{position:absolute;top:10px;right:10px;width:34px;height:34px;border-radius:6px;border:1px solid var(--green-dim);background:#02160bdd;color:var(--green);font-family:var(--mono);font-size:15px;cursor:pointer;z-index:2;transition:.18s}
   .lb-close:hover{background:var(--green);color:#02160b}
   .lb-hint{position:absolute;bottom:0;left:0;right:0;text-align:center;font-family:var(--mono);font-size:11px;color:#cfe9da;background:linear-gradient(transparent,#02160bcc);padding:22px 10px 9px}
+
+  /* ---- thème clair (débloqué via les 5 clés) ---- */
+  :root[data-theme="light"]{--bg:#f6f4ec;--text:#16231c}
+  [data-theme="light"] #matrix{opacity:.05}
+  [data-theme="light"] .gridbg{opacity:.4}
+  [data-theme="light"] h1.name,
+  [data-theme="light"] .sec-title,
+  [data-theme="light"] .tl-item h3{color:#16231c}
+
+  /* ---- bouton bascule thème (masqué tant que non débloqué) ---- */
+  .theme-toggle{background:transparent;color:var(--text-dim);border:0;padding:5px 8px;font-size:15px;cursor:pointer;transition:.2s}
+  .theme-toggle:hover{color:var(--green)}
+
+  /* ---- clés cachées ---- */
+  .hidden-key{position:absolute;font-size:17px;opacity:0;pointer-events:none;transition:opacity .4s;cursor:pointer;filter:drop-shadow(0 0 6px #00ff66aa);z-index:5}
+  .hidden-key.show{opacity:1;pointer-events:auto;animation:keyFloat 1.8s ease-in-out infinite}
+  @keyframes keyFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+  #key1{top:-14px;right:-26px}
+  .mitre-chip{cursor:pointer}
+  .gh-hover-zone{cursor:default}
+
+  .key-fly{position:fixed;font-size:20px;z-index:9998;pointer-events:none;transition:all .65s cubic-bezier(.3,.6,.3,1);filter:drop-shadow(0 0 8px #00ff66)}
+
+  /* ---- coffre au trésor ---- */
+  .chest-widget{position:fixed;bottom:18px;right:18px;z-index:500;font-family:var(--mono)}
+  .chest-btn{display:flex;align-items:center;gap:7px;background:var(--panel);border:1px solid var(--green-dim);border-radius:30px;padding:9px 16px;color:var(--text);cursor:pointer;box-shadow:0 4px 18px #00000055;transition:.2s}
+  .chest-btn:hover{border-color:var(--green);transform:translateY(-2px)}
+  .chest-btn .chest-icon{font-size:17px;transition:.3s}
+  .chest-btn.bump .chest-icon{animation:chestBump .5s ease}
+  .chest-btn.full{border-color:var(--green);box-shadow:0 0 18px #00ff6666}
+  @keyframes chestBump{0%,100%{transform:scale(1)}40%{transform:scale(1.35) rotate(-8deg)}70%{transform:scale(.95) rotate(4deg)}}
+  .chest-count{font-size:12.5px;font-weight:700;color:var(--green)}
+  .chest-panel{position:absolute;bottom:52px;right:0;width:230px;background:var(--panel);border:1px solid var(--green-dim);border-radius:10px;padding:14px;box-shadow:0 10px 30px #00000066}
+  .chest-panel-title{font-size:12.5px;color:var(--text-dim);letter-spacing:.5px;margin-bottom:10px}
+  .chest-list{list-style:none;display:flex;flex-direction:column;gap:7px}
+  .chest-list li{font-size:12.5px;color:var(--text-dim);display:flex;gap:8px;align-items:center}
+  .chest-list li.found{color:var(--green)}
+  .chest-reward{margin-top:10px;padding-top:10px;border-top:1px solid var(--line);font-size:12px;color:var(--green);text-align:center}
+
+  @media(max-width:600px){.chest-widget{bottom:12px;right:12px}.chest-panel{width:200px}}
+
+  /* ---- icônes pixel-art (SVG) ---- */
+  svg.pixel{shape-rendering:crispEdges}
+  .key-icon-float{width:22px;height:32px}
+  .key-icon-fly{width:20px;height:29px}
+  .key-icon-list{width:13px;height:19px;vertical-align:-4px}
+  .chest-icon-svg{width:20px;height:19px;display:block}
+
+  /* ---- clé flottante (hover + clic) ---- */
+  .hidden-key{position:absolute;opacity:0;pointer-events:none;transition:opacity .4s;cursor:pointer;filter:drop-shadow(0 0 7px #ffb000cc);z-index:5}
+  .hidden-key.show{opacity:1;pointer-events:auto;animation:keyFloat 1.8s ease-in-out infinite}
+  @keyframes keyFloat{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-6px) rotate(4deg)}}
+  #key1{top:-30px;right:-26px}
+  .mitre-chip{cursor:pointer}
+
+  .key-fly{position:fixed;z-index:9998;pointer-events:none;filter:drop-shadow(0 0 9px #ffb000)}
+
+  /* ---- particules (ramassage + grande explosion) ---- */
+  .particle{position:fixed;width:5px;height:5px;border-radius:1px;pointer-events:none;z-index:9997;animation:particleBurst .8s cubic-bezier(.2,.7,.3,1) forwards}
+  @keyframes particleBurst{to{transform:translate(var(--dx),var(--dy)) rotate(var(--rot));opacity:0}}
+
+  /* ---- coffre au trésor ---- */
+  .chest-widget{position:fixed;bottom:18px;right:18px;z-index:500;font-family:var(--mono)}
+  .chest-btn{display:flex;align-items:center;gap:9px;background:var(--panel);border:1px solid var(--green-dim);border-radius:30px;padding:8px 16px 8px 12px;color:var(--text);cursor:pointer;box-shadow:0 4px 18px #00000055;transition:.2s}
+  .chest-btn:hover{border-color:var(--green);transform:translateY(-2px)}
+  .chest-btn.bump{animation:chestBump .5s ease}
+  .chest-btn.full{border-color:var(--amber);box-shadow:0 0 18px #ffb00066}
+  .chest-btn.pulse{animation:chestPulse 1.8s ease-in-out infinite}
+  @keyframes chestBump{0%,100%{transform:scale(1)}40%{transform:scale(1.3) rotate(-6deg)}70%{transform:scale(.95) rotate(4deg)}}
+  @keyframes chestPulse{0%,100%{box-shadow:0 4px 18px #00000055}50%{box-shadow:0 4px 18px #00000055,0 0 0 7px #ffb00033}}
+  .chest-count{font-size:12.5px;font-weight:700;color:var(--amber)}
+  .chest-panel{position:absolute;bottom:52px;right:0;width:235px;background:var(--panel);border:1px solid var(--green-dim);border-radius:10px;padding:14px;box-shadow:0 10px 30px #00000066}
+  .chest-panel-title{font-size:12.5px;color:var(--text-dim);letter-spacing:.5px;margin-bottom:10px}
+  .chest-list{list-style:none;display:flex;flex-direction:column;gap:7px;margin-bottom:4px}
+  .chest-list li{font-size:12.5px;color:var(--text-dim);display:flex;gap:8px;align-items:center}
+  .chest-list li.found{color:var(--amber)}
+  .chest-reward{margin-top:10px;padding-top:10px;border-top:1px solid var(--line);font-size:12px;color:var(--amber);text-align:center}
+  .hint-btn{margin-top:10px;background:transparent;border:1px dashed var(--green-dim);color:var(--text-dim);font-size:11.5px;padding:6px 8px;border-radius:6px;cursor:pointer;width:100%;font-family:var(--mono)}
+  .hint-btn:hover{border-color:var(--amber);color:var(--amber)}
+  .hint-text{margin-top:8px;font-size:11.5px;color:var(--amber);line-height:1.4}
+
+  /* ---- grande séquence de déblocage plein écran ---- */
+  .unlock-overlay{position:fixed;inset:0;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;overflow:hidden}
+  .unlock-overlay[hidden]{display:none}
+  .unlock-dark-mask{position:absolute;inset:0;background:#05080a}
+  .unlock-chest{position:relative;width:150px;height:auto;transform:scale(.2);opacity:0;transition:transform .5s cubic-bezier(.34,1.56,.64,1),opacity .3s}
+  .unlock-overlay.show .unlock-chest{transform:scale(1);opacity:1;filter:drop-shadow(0 0 28px #ffb000)}
+  .unlock-chest.popped{animation:chestPop .6s ease}
+  @keyframes chestPop{0%{transform:scale(1)}30%{transform:scale(1.3) rotate(-3deg)}60%{transform:scale(.95) rotate(2deg)}100%{transform:scale(1.1)}}
+  .unlock-text{position:relative;margin-top:22px;font-family:var(--disp);font-weight:800;letter-spacing:2px;font-size:clamp(20px,5vw,34px);color:#8a5a00;text-shadow:0 0 18px #ffb000aa;opacity:0;transform:translateY(10px);transition:all .4s ease;text-align:center;padding:0 20px}
+  .unlock-overlay.text-show .unlock-text{opacity:1;transform:translateY(0)}
 </style>
 </head>
 <body>
+<svg style="display:none" aria-hidden="true">
+  <symbol id="pixelKey" viewBox="0 0 9 13"><rect x="2" y="0" width="1" height="1" fill="#8a5a00"/><rect x="3" y="0" width="1" height="1" fill="#8a5a00"/><rect x="4" y="0" width="1" height="1" fill="#8a5a00"/><rect x="5" y="0" width="1" height="1" fill="#8a5a00"/><rect x="6" y="0" width="1" height="1" fill="#8a5a00"/><rect x="1" y="1" width="1" height="1" fill="#8a5a00"/><rect x="2" y="1" width="1" height="1" fill="#ffb000"/><rect x="3" y="1" width="1" height="1" fill="#ffb000"/><rect x="4" y="1" width="1" height="1" fill="#ffb000"/><rect x="5" y="1" width="1" height="1" fill="#ffb000"/><rect x="6" y="1" width="1" height="1" fill="#ffb000"/><rect x="7" y="1" width="1" height="1" fill="#8a5a00"/><rect x="0" y="2" width="1" height="1" fill="#8a5a00"/><rect x="1" y="2" width="1" height="1" fill="#ffb000"/><rect x="2" y="2" width="1" height="1" fill="#ffb000"/><rect x="6" y="2" width="1" height="1" fill="#ffb000"/><rect x="7" y="2" width="1" height="1" fill="#ffb000"/><rect x="8" y="2" width="1" height="1" fill="#8a5a00"/><rect x="0" y="3" width="1" height="1" fill="#8a5a00"/><rect x="1" y="3" width="1" height="1" fill="#ffb000"/><rect x="7" y="3" width="1" height="1" fill="#ffb000"/><rect x="8" y="3" width="1" height="1" fill="#8a5a00"/><rect x="0" y="4" width="1" height="1" fill="#8a5a00"/><rect x="1" y="4" width="1" height="1" fill="#ffb000"/><rect x="2" y="4" width="1" height="1" fill="#ffb000"/><rect x="6" y="4" width="1" height="1" fill="#ffb000"/><rect x="7" y="4" width="1" height="1" fill="#ffb000"/><rect x="8" y="4" width="1" height="1" fill="#8a5a00"/><rect x="1" y="5" width="1" height="1" fill="#8a5a00"/><rect x="2" y="5" width="1" height="1" fill="#ffb000"/><rect x="3" y="5" width="1" height="1" fill="#ffb000"/><rect x="4" y="5" width="1" height="1" fill="#ffb000"/><rect x="5" y="5" width="1" height="1" fill="#ffb000"/><rect x="6" y="5" width="1" height="1" fill="#ffb000"/><rect x="7" y="5" width="1" height="1" fill="#8a5a00"/><rect x="2" y="6" width="1" height="1" fill="#8a5a00"/><rect x="3" y="6" width="1" height="1" fill="#8a5a00"/><rect x="4" y="6" width="1" height="1" fill="#8a5a00"/><rect x="5" y="6" width="1" height="1" fill="#8a5a00"/><rect x="6" y="6" width="1" height="1" fill="#8a5a00"/><rect x="3" y="7" width="1" height="1" fill="#8a5a00"/><rect x="4" y="7" width="1" height="1" fill="#8a5a00"/><rect x="5" y="7" width="1" height="1" fill="#8a5a00"/><rect x="3" y="8" width="1" height="1" fill="#8a5a00"/><rect x="4" y="8" width="1" height="1" fill="#ffb000"/><rect x="5" y="8" width="1" height="1" fill="#8a5a00"/><rect x="3" y="9" width="1" height="1" fill="#8a5a00"/><rect x="4" y="9" width="1" height="1" fill="#ffb000"/><rect x="5" y="9" width="1" height="1" fill="#8a5a00"/><rect x="3" y="10" width="1" height="1" fill="#8a5a00"/><rect x="4" y="10" width="1" height="1" fill="#ffb000"/><rect x="5" y="10" width="1" height="1" fill="#8a5a00"/><rect x="2" y="11" width="1" height="1" fill="#8a5a00"/><rect x="3" y="11" width="1" height="1" fill="#8a5a00"/><rect x="4" y="11" width="1" height="1" fill="#ffb000"/><rect x="5" y="11" width="1" height="1" fill="#8a5a00"/><rect x="6" y="11" width="1" height="1" fill="#8a5a00"/><rect x="2" y="12" width="1" height="1" fill="#8a5a00"/><rect x="3" y="12" width="1" height="1" fill="#8a5a00"/><rect x="4" y="12" width="1" height="1" fill="#8a5a00"/><rect x="5" y="12" width="1" height="1" fill="#8a5a00"/><rect x="6" y="12" width="1" height="1" fill="#8a5a00"/></symbol>
+  <symbol id="chestClosed" viewBox="0 0 12 9"><rect x="1" y="0" width="1" height="1" fill="#5a3200"/><rect x="2" y="0" width="1" height="1" fill="#5a3200"/><rect x="3" y="0" width="1" height="1" fill="#5a3200"/><rect x="4" y="0" width="1" height="1" fill="#5a3200"/><rect x="5" y="0" width="1" height="1" fill="#5a3200"/><rect x="6" y="0" width="1" height="1" fill="#5a3200"/><rect x="7" y="0" width="1" height="1" fill="#5a3200"/><rect x="8" y="0" width="1" height="1" fill="#5a3200"/><rect x="9" y="0" width="1" height="1" fill="#5a3200"/><rect x="10" y="0" width="1" height="1" fill="#5a3200"/><rect x="0" y="1" width="1" height="1" fill="#5a3200"/><rect x="1" y="1" width="1" height="1" fill="#ffb000"/><rect x="2" y="1" width="1" height="1" fill="#ffb000"/><rect x="3" y="1" width="1" height="1" fill="#ffb000"/><rect x="4" y="1" width="1" height="1" fill="#ffb000"/><rect x="5" y="1" width="1" height="1" fill="#ffb000"/><rect x="6" y="1" width="1" height="1" fill="#ffb000"/><rect x="7" y="1" width="1" height="1" fill="#ffb000"/><rect x="8" y="1" width="1" height="1" fill="#ffb000"/><rect x="9" y="1" width="1" height="1" fill="#ffb000"/><rect x="10" y="1" width="1" height="1" fill="#ffb000"/><rect x="11" y="1" width="1" height="1" fill="#5a3200"/><rect x="0" y="2" width="1" height="1" fill="#5a3200"/><rect x="1" y="2" width="1" height="1" fill="#ffb000"/><rect x="2" y="2" width="1" height="1" fill="#ffb000"/><rect x="3" y="2" width="1" height="1" fill="#ffb000"/><rect x="4" y="2" width="1" height="1" fill="#ffb000"/><rect x="5" y="2" width="1" height="1" fill="#ffb000"/><rect x="6" y="2" width="1" height="1" fill="#ffb000"/><rect x="7" y="2" width="1" height="1" fill="#ffb000"/><rect x="8" y="2" width="1" height="1" fill="#ffb000"/><rect x="9" y="2" width="1" height="1" fill="#ffb000"/><rect x="10" y="2" width="1" height="1" fill="#ffb000"/><rect x="11" y="2" width="1" height="1" fill="#5a3200"/><rect x="0" y="3" width="1" height="1" fill="#5a3200"/><rect x="1" y="3" width="1" height="1" fill="#5a3200"/><rect x="2" y="3" width="1" height="1" fill="#5a3200"/><rect x="3" y="3" width="1" height="1" fill="#5a3200"/><rect x="4" y="3" width="1" height="1" fill="#5a3200"/><rect x="5" y="3" width="1" height="1" fill="#5a3200"/><rect x="6" y="3" width="1" height="1" fill="#5a3200"/><rect x="7" y="3" width="1" height="1" fill="#5a3200"/><rect x="8" y="3" width="1" height="1" fill="#5a3200"/><rect x="9" y="3" width="1" height="1" fill="#5a3200"/><rect x="10" y="3" width="1" height="1" fill="#5a3200"/><rect x="11" y="3" width="1" height="1" fill="#5a3200"/><rect x="0" y="4" width="1" height="1" fill="#5a3200"/><rect x="1" y="4" width="1" height="1" fill="#c97a2b"/><rect x="2" y="4" width="1" height="1" fill="#c97a2b"/><rect x="3" y="4" width="1" height="1" fill="#c97a2b"/><rect x="4" y="4" width="1" height="1" fill="#c97a2b"/><rect x="5" y="4" width="1" height="1" fill="#8a5a00"/><rect x="6" y="4" width="1" height="1" fill="#8a5a00"/><rect x="7" y="4" width="1" height="1" fill="#c97a2b"/><rect x="8" y="4" width="1" height="1" fill="#c97a2b"/><rect x="9" y="4" width="1" height="1" fill="#c97a2b"/><rect x="10" y="4" width="1" height="1" fill="#c97a2b"/><rect x="11" y="4" width="1" height="1" fill="#5a3200"/><rect x="0" y="5" width="1" height="1" fill="#5a3200"/><rect x="1" y="5" width="1" height="1" fill="#c97a2b"/><rect x="2" y="5" width="1" height="1" fill="#c97a2b"/><rect x="3" y="5" width="1" height="1" fill="#c97a2b"/><rect x="4" y="5" width="1" height="1" fill="#8a5a00"/><rect x="5" y="5" width="1" height="1" fill="#5a3200"/><rect x="6" y="5" width="1" height="1" fill="#5a3200"/><rect x="7" y="5" width="1" height="1" fill="#8a5a00"/><rect x="8" y="5" width="1" height="1" fill="#c97a2b"/><rect x="9" y="5" width="1" height="1" fill="#c97a2b"/><rect x="10" y="5" width="1" height="1" fill="#c97a2b"/><rect x="11" y="5" width="1" height="1" fill="#5a3200"/><rect x="0" y="6" width="1" height="1" fill="#5a3200"/><rect x="1" y="6" width="1" height="1" fill="#c97a2b"/><rect x="2" y="6" width="1" height="1" fill="#c97a2b"/><rect x="3" y="6" width="1" height="1" fill="#c97a2b"/><rect x="4" y="6" width="1" height="1" fill="#c97a2b"/><rect x="5" y="6" width="1" height="1" fill="#8a5a00"/><rect x="6" y="6" width="1" height="1" fill="#8a5a00"/><rect x="7" y="6" width="1" height="1" fill="#c97a2b"/><rect x="8" y="6" width="1" height="1" fill="#c97a2b"/><rect x="9" y="6" width="1" height="1" fill="#c97a2b"/><rect x="10" y="6" width="1" height="1" fill="#c97a2b"/><rect x="11" y="6" width="1" height="1" fill="#5a3200"/><rect x="0" y="7" width="1" height="1" fill="#5a3200"/><rect x="1" y="7" width="1" height="1" fill="#c97a2b"/><rect x="2" y="7" width="1" height="1" fill="#c97a2b"/><rect x="3" y="7" width="1" height="1" fill="#c97a2b"/><rect x="4" y="7" width="1" height="1" fill="#c97a2b"/><rect x="5" y="7" width="1" height="1" fill="#c97a2b"/><rect x="6" y="7" width="1" height="1" fill="#c97a2b"/><rect x="7" y="7" width="1" height="1" fill="#c97a2b"/><rect x="8" y="7" width="1" height="1" fill="#c97a2b"/><rect x="9" y="7" width="1" height="1" fill="#c97a2b"/><rect x="10" y="7" width="1" height="1" fill="#c97a2b"/><rect x="11" y="7" width="1" height="1" fill="#5a3200"/><rect x="0" y="8" width="1" height="1" fill="#5a3200"/><rect x="1" y="8" width="1" height="1" fill="#5a3200"/><rect x="2" y="8" width="1" height="1" fill="#5a3200"/><rect x="3" y="8" width="1" height="1" fill="#5a3200"/><rect x="4" y="8" width="1" height="1" fill="#5a3200"/><rect x="5" y="8" width="1" height="1" fill="#5a3200"/><rect x="6" y="8" width="1" height="1" fill="#5a3200"/><rect x="7" y="8" width="1" height="1" fill="#5a3200"/><rect x="8" y="8" width="1" height="1" fill="#5a3200"/><rect x="9" y="8" width="1" height="1" fill="#5a3200"/><rect x="10" y="8" width="1" height="1" fill="#5a3200"/><rect x="11" y="8" width="1" height="1" fill="#5a3200"/></symbol>
+  <symbol id="chestOpen" viewBox="0 0 12 11"><rect x="2" y="0" width="1" height="1" fill="#5a3200"/><rect x="3" y="0" width="1" height="1" fill="#5a3200"/><rect x="4" y="0" width="1" height="1" fill="#5a3200"/><rect x="5" y="0" width="1" height="1" fill="#5a3200"/><rect x="6" y="0" width="1" height="1" fill="#5a3200"/><rect x="7" y="0" width="1" height="1" fill="#5a3200"/><rect x="8" y="0" width="1" height="1" fill="#5a3200"/><rect x="9" y="0" width="1" height="1" fill="#5a3200"/><rect x="1" y="1" width="1" height="1" fill="#5a3200"/><rect x="2" y="1" width="1" height="1" fill="#ffb000"/><rect x="3" y="1" width="1" height="1" fill="#ffb000"/><rect x="4" y="1" width="1" height="1" fill="#ffb000"/><rect x="5" y="1" width="1" height="1" fill="#ffb000"/><rect x="6" y="1" width="1" height="1" fill="#ffb000"/><rect x="7" y="1" width="1" height="1" fill="#ffb000"/><rect x="8" y="1" width="1" height="1" fill="#ffb000"/><rect x="9" y="1" width="1" height="1" fill="#ffb000"/><rect x="10" y="1" width="1" height="1" fill="#5a3200"/><rect x="0" y="2" width="1" height="1" fill="#5a3200"/><rect x="1" y="2" width="1" height="1" fill="#5a3200"/><rect x="2" y="2" width="1" height="1" fill="#5a3200"/><rect x="3" y="2" width="1" height="1" fill="#5a3200"/><rect x="4" y="2" width="1" height="1" fill="#5a3200"/><rect x="5" y="2" width="1" height="1" fill="#5a3200"/><rect x="6" y="2" width="1" height="1" fill="#5a3200"/><rect x="7" y="2" width="1" height="1" fill="#5a3200"/><rect x="8" y="2" width="1" height="1" fill="#5a3200"/><rect x="9" y="2" width="1" height="1" fill="#5a3200"/><rect x="10" y="2" width="1" height="1" fill="#5a3200"/><rect x="11" y="2" width="1" height="1" fill="#5a3200"/><rect x="0" y="3" width="1" height="1" fill="#5a3200"/><rect x="1" y="3" width="1" height="1" fill="#7de8c0"/><rect x="2" y="3" width="1" height="1" fill="#7de8c0"/><rect x="3" y="3" width="1" height="1" fill="#7de8c0"/><rect x="4" y="3" width="1" height="1" fill="#7de8c0"/><rect x="5" y="3" width="1" height="1" fill="#7de8c0"/><rect x="6" y="3" width="1" height="1" fill="#7de8c0"/><rect x="7" y="3" width="1" height="1" fill="#7de8c0"/><rect x="8" y="3" width="1" height="1" fill="#7de8c0"/><rect x="9" y="3" width="1" height="1" fill="#7de8c0"/><rect x="10" y="3" width="1" height="1" fill="#7de8c0"/><rect x="11" y="3" width="1" height="1" fill="#5a3200"/><rect x="0" y="4" width="1" height="1" fill="#5a3200"/><rect x="1" y="4" width="1" height="1" fill="#7de8c0"/><rect x="2" y="4" width="1" height="1" fill="#7de8c0"/><rect x="3" y="4" width="1" height="1" fill="#7de8c0"/><rect x="4" y="4" width="1" height="1" fill="#7de8c0"/><rect x="5" y="4" width="1" height="1" fill="#7de8c0"/><rect x="6" y="4" width="1" height="1" fill="#7de8c0"/><rect x="7" y="4" width="1" height="1" fill="#7de8c0"/><rect x="8" y="4" width="1" height="1" fill="#7de8c0"/><rect x="9" y="4" width="1" height="1" fill="#7de8c0"/><rect x="10" y="4" width="1" height="1" fill="#7de8c0"/><rect x="11" y="4" width="1" height="1" fill="#5a3200"/><rect x="0" y="5" width="1" height="1" fill="#5a3200"/><rect x="1" y="5" width="1" height="1" fill="#5a3200"/><rect x="2" y="5" width="1" height="1" fill="#5a3200"/><rect x="3" y="5" width="1" height="1" fill="#5a3200"/><rect x="4" y="5" width="1" height="1" fill="#5a3200"/><rect x="5" y="5" width="1" height="1" fill="#5a3200"/><rect x="6" y="5" width="1" height="1" fill="#5a3200"/><rect x="7" y="5" width="1" height="1" fill="#5a3200"/><rect x="8" y="5" width="1" height="1" fill="#5a3200"/><rect x="9" y="5" width="1" height="1" fill="#5a3200"/><rect x="10" y="5" width="1" height="1" fill="#5a3200"/><rect x="11" y="5" width="1" height="1" fill="#5a3200"/><rect x="0" y="6" width="1" height="1" fill="#5a3200"/><rect x="1" y="6" width="1" height="1" fill="#c97a2b"/><rect x="2" y="6" width="1" height="1" fill="#c97a2b"/><rect x="3" y="6" width="1" height="1" fill="#c97a2b"/><rect x="4" y="6" width="1" height="1" fill="#c97a2b"/><rect x="5" y="6" width="1" height="1" fill="#8a5a00"/><rect x="6" y="6" width="1" height="1" fill="#8a5a00"/><rect x="7" y="6" width="1" height="1" fill="#c97a2b"/><rect x="8" y="6" width="1" height="1" fill="#c97a2b"/><rect x="9" y="6" width="1" height="1" fill="#c97a2b"/><rect x="10" y="6" width="1" height="1" fill="#c97a2b"/><rect x="11" y="6" width="1" height="1" fill="#5a3200"/><rect x="0" y="7" width="1" height="1" fill="#5a3200"/><rect x="1" y="7" width="1" height="1" fill="#c97a2b"/><rect x="2" y="7" width="1" height="1" fill="#c97a2b"/><rect x="3" y="7" width="1" height="1" fill="#c97a2b"/><rect x="4" y="7" width="1" height="1" fill="#8a5a00"/><rect x="5" y="7" width="1" height="1" fill="#5a3200"/><rect x="6" y="7" width="1" height="1" fill="#5a3200"/><rect x="7" y="7" width="1" height="1" fill="#8a5a00"/><rect x="8" y="7" width="1" height="1" fill="#c97a2b"/><rect x="9" y="7" width="1" height="1" fill="#c97a2b"/><rect x="10" y="7" width="1" height="1" fill="#c97a2b"/><rect x="11" y="7" width="1" height="1" fill="#5a3200"/><rect x="0" y="8" width="1" height="1" fill="#5a3200"/><rect x="1" y="8" width="1" height="1" fill="#c97a2b"/><rect x="2" y="8" width="1" height="1" fill="#c97a2b"/><rect x="3" y="8" width="1" height="1" fill="#c97a2b"/><rect x="4" y="8" width="1" height="1" fill="#c97a2b"/><rect x="5" y="8" width="1" height="1" fill="#8a5a00"/><rect x="6" y="8" width="1" height="1" fill="#8a5a00"/><rect x="7" y="8" width="1" height="1" fill="#c97a2b"/><rect x="8" y="8" width="1" height="1" fill="#c97a2b"/><rect x="9" y="8" width="1" height="1" fill="#c97a2b"/><rect x="10" y="8" width="1" height="1" fill="#c97a2b"/><rect x="11" y="8" width="1" height="1" fill="#5a3200"/><rect x="0" y="9" width="1" height="1" fill="#5a3200"/><rect x="1" y="9" width="1" height="1" fill="#c97a2b"/><rect x="2" y="9" width="1" height="1" fill="#c97a2b"/><rect x="3" y="9" width="1" height="1" fill="#c97a2b"/><rect x="4" y="9" width="1" height="1" fill="#c97a2b"/><rect x="5" y="9" width="1" height="1" fill="#c97a2b"/><rect x="6" y="9" width="1" height="1" fill="#c97a2b"/><rect x="7" y="9" width="1" height="1" fill="#c97a2b"/><rect x="8" y="9" width="1" height="1" fill="#c97a2b"/><rect x="9" y="9" width="1" height="1" fill="#c97a2b"/><rect x="10" y="9" width="1" height="1" fill="#c97a2b"/><rect x="11" y="9" width="1" height="1" fill="#5a3200"/><rect x="0" y="10" width="1" height="1" fill="#5a3200"/><rect x="1" y="10" width="1" height="1" fill="#5a3200"/><rect x="2" y="10" width="1" height="1" fill="#5a3200"/><rect x="3" y="10" width="1" height="1" fill="#5a3200"/><rect x="4" y="10" width="1" height="1" fill="#5a3200"/><rect x="5" y="10" width="1" height="1" fill="#5a3200"/><rect x="6" y="10" width="1" height="1" fill="#5a3200"/><rect x="7" y="10" width="1" height="1" fill="#5a3200"/><rect x="8" y="10" width="1" height="1" fill="#5a3200"/><rect x="9" y="10" width="1" height="1" fill="#5a3200"/><rect x="10" y="10" width="1" height="1" fill="#5a3200"/><rect x="11" y="10" width="1" height="1" fill="#5a3200"/></symbol>
+</svg>
 <div id="boot" aria-hidden="true">
   <div class="bootlines" id="bootlines"></div>
   <div class="skip">[ press any key or click to skip ]</div>
@@ -306,6 +402,7 @@
       <div class="lang">
         <button id="btn-fr" class="active" onclick="setLang('fr')">FR</button>
         <button id="btn-en" onclick="setLang('en')">EN</button>
+        <button id="themeToggle" class="theme-toggle" onclick="toggleTheme()" hidden title="Thème">🌗</button>
       </div>
       <button class="menu-toggle" onclick="document.getElementById('navlist').classList.toggle('open')">≡</button>
     </div>
@@ -319,7 +416,7 @@
       <div>
         <span class="status"><span class="dot"></span><span data-fr="DISPONIBLE — STAGE PFE" data-en="OPEN TO — FINAL-YEAR INTERNSHIP">DISPONIBLE — STAGE PFE</span></span>
         <div class="pre">// CYBERDEFENSE · SOC · NETWORK SECURITY</div>
-        <h1 class="name"><span class="glitch" data-text="YASSER">YASSER</span> CHETTOUR</h1>
+        <h1 class="name" style="position:relative" id="heroName"><span class="glitch" data-text="YASSER">YASSER</span> CHETTOUR<span id="key1" class="hidden-key" onclick="collectKey('k1',this)"><svg class="pixel key-icon-float" viewBox="0 0 9 13"><use href="#pixelKey"/></svg></span></h1>
         <div class="role"><span id="typed"></span><span class="caret"></span></div>
         <p class="tagline"
            data-fr="Élève ingénieur en <b>Cyberdéfense &amp; Télécommunications Embarquées</b> à l'ENSA Marrakech. Passionné par la <b>défense réseau</b>, les opérations SOC / Blue Team, la forensique et l'analyse de vulnérabilités. Je casse les systèmes en CTF pour mieux les durcir."
@@ -356,7 +453,7 @@
       </div>
       <div class="skill-card reveal">
         <h3>🔬 <span data-fr="Forensique &amp; Analyse" data-en="Forensics &amp; Analysis">Forensique &amp; Analyse</span></h3>
-        <div class="chips"><span class="chip">Wireshark</span><span class="chip">TCPdump</span><span class="chip">Binwalk</span><span class="chip">Foremost</span><span class="chip">Autopsy</span><span class="chip">MITRE ATT&amp;CK</span></div>
+        <div class="chips"><span class="chip">Wireshark</span><span class="chip">TCPdump</span><span class="chip">Binwalk</span><span class="chip">Foremost</span><span class="chip">Autopsy</span><span class="chip mitre-chip" id="mitreChip" onclick="mitreClick()">MITRE ATT&amp;CK</span></div>
       </div>
       <div class="skill-card reveal">
         <h3>🌐 <span data-fr="Réseaux &amp; Infrastructure" data-en="Networks &amp; Infrastructure">Réseaux &amp; Infrastructure</span></h3>
@@ -490,7 +587,7 @@
   <section id="github">
     <div class="sec-head reveal">
       <div class="sec-cmd"><span class="p">yasser@ensa</span>:<span class="f">~</span>$ git log --oneline --remote</div>
-      <div class="sec-title" data-fr="Activité GitHub" data-en="GitHub Activity">Activité GitHub</div>
+      <div class="sec-title gh-hover-zone" id="ghHoverZone" data-fr="Activité GitHub" data-en="GitHub Activity">Activité GitHub</div>
     </div>
     <div class="reveal">
       <div class="gh-grid" id="ghGrid"><div class="gh-loading">↻ <span data-fr="récupération des dépôts en direct..." data-en="fetching live repositories...">récupération des dépôts en direct...</span></div></div>
@@ -748,7 +845,8 @@
   var boot=document.getElementById('boot');
   if(!boot)return;
   var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if(reduce||sessionStorage.getItem('booted')){boot.parentNode&&boot.remove();return;}
+  var alreadyBooted=false;try{alreadyBooted=!!sessionStorage.getItem('booted');}catch(e){}
+  if(reduce||alreadyBooted){boot.parentNode&&boot.remove();return;}
   document.body.style.overflow='hidden';
   var host=document.getElementById('bootlines');
   var seq=[
@@ -813,9 +911,10 @@ const cv=document.getElementById('matrix'),ctx=cv.getContext('2d');let cols,drop
 function resize(){cv.width=innerWidth;cv.height=innerHeight;cols=Math.floor(cv.width/14);drops=Array(cols).fill(0).map(()=>Math.random()*-100);}
 resize();addEventListener('resize',resize);
 const g="01ABCDEF<>{}[]/\\|=+* アカサタナ0123456789";
-function draw(){ctx.fillStyle="rgba(5,8,10,0.08)";ctx.fillRect(0,0,cv.width,cv.height);ctx.font="13px JetBrains Mono, monospace";
+function draw(){const isLight=document.documentElement.getAttribute('data-theme')==='light';
+  ctx.fillStyle=isLight?"rgba(246,244,236,0.12)":"rgba(5,8,10,0.08)";ctx.fillRect(0,0,cv.width,cv.height);ctx.font="13px JetBrains Mono, monospace";
   for(let i=0;i<cols;i++){const ch=g[Math.floor(Math.random()*g.length)];const x=i*14,y=drops[i]*14;
-    ctx.fillStyle=Math.random()>0.975?"#aaffcc":"#00ff66";ctx.fillText(ch,x,y);
+    ctx.fillStyle=Math.random()>0.975?(isLight?"#0a7a3d":"#aaffcc"):(isLight?"#0a9d4a":"#00ff66");ctx.fillText(ch,x,y);
     if(y>cv.height&&Math.random()>0.975)drops[i]=0;drops[i]++;}requestAnimationFrame(draw);}
 draw();
 /* reveal */
@@ -901,6 +1000,11 @@ function runCmd(raw){
   printCmd(trimmed);
   if(c.startsWith('scan '))return CMDS.scan(trimmed.slice(5).trim());
   if(c==='scan')return CMDS.scan();
+  if(c==='sudo su'){
+    print('[sudo] password for visitor: <span class="d">********</span>\n<span class="g">root access granted.</span> <span class="d">(you really tried every combo, huh 😏)</span>\n<span class="g">🔑 key found: ROOT_ACCESS</span>');
+    if(window.__collectK2) window.__collectK2();
+    return;
+  }
   if(c==='ls')return print('skills  projects  certs  contact  cv.pdf  scan.sh  atlas.jpg  secrets.txt');
   if(c==='cat'||c==='cat atlas.jpg')return CMDS.atlas();
   if(c==='cat cv.pdf'||c==='open cv.pdf')return CMDS.cv();
@@ -1029,6 +1133,301 @@ function closeCert(){
   document.getElementById('lbClose').addEventListener('click',closeCert);
   lb.addEventListener('click',function(e){if(e.target===lb)closeCert();});
   document.addEventListener('keydown',function(e){if(e.key==='Escape')closeCert();});
+})();
+</script>
+<div id="chestWidget" class="chest-widget" aria-hidden="true">
+  <button id="chestBtn" class="chest-btn" onclick="toggleChestPanel()" aria-label="Clés collectées">
+    <span class="chest-icon" id="chestIcon"><svg class="pixel chest-icon-svg" viewBox="0 0 12 9" id="chestIconSvg"><use href="#chestClosed" id="chestIconUse"/></svg></span>
+    <span class="chest-count" id="chestCount">0/5</span>
+  </button>
+  <div id="chestPanel" class="chest-panel" hidden>
+    <div class="chest-panel-title" data-fr="CLÉS CACHÉES" data-en="HIDDEN KEYS">CLÉS CACHÉES</div>
+    <ul id="chestList" class="chest-list"></ul>
+    <div id="chestReward" class="chest-reward" hidden data-fr="🎉 Thème clair débloqué — bascule en haut à droite" data-en="🎉 Light theme unlocked — toggle top right">🎉 Thème clair débloqué — bascule en haut à droite</div>
+    <button id="hintBtn" class="hint-btn" onclick="showHint()" data-fr="💡 Besoin d'un indice ?" data-en="💡 Need a hint?">💡 Besoin d'un indice ?</button>
+    <div id="hintText" class="hint-text"></div>
+  </div>
+</div>
+<div id="unlockOverlay" class="unlock-overlay" hidden>
+  <div id="unlockDarkMask" class="unlock-dark-mask"></div>
+  <div class="unlock-particles" id="unlockParticles"></div>
+  <svg class="unlock-chest pixel" id="unlockChestSvg" viewBox="0 0 12 9"><use id="unlockChestUse" href="#chestClosed"/></svg>
+  <div class="unlock-text" id="unlockText" data-fr="THÈME CLAIR DÉVERROUILLÉ" data-en="LIGHT THEME UNLOCKED">THÈME CLAIR DÉVERROUILLÉ</div>
+</div>
+<script>
+(function(){
+  var KEYS=[
+    {id:'k1',name:'GLITCH_01'},
+    {id:'k2',name:'ROOT_ACCESS'},
+    {id:'k3',name:'ATTACK_INSIDER'},
+    {id:'k4',name:'GIT_STALKER'},
+    {id:'k5',name:'KONAMI_MASTER'}
+  ];
+  var found = JSON.parse(localStorage.getItem('ych_keys')||'[]');
+  var unlocked = localStorage.getItem('ych_theme_unlocked')==='1';
+  var chestBtn=document.getElementById('chestBtn'),chestIcon=document.getElementById('chestIcon'),
+      chestCount=document.getElementById('chestCount'),chestList=document.getElementById('chestList'),
+      chestPanel=document.getElementById('chestPanel'),chestReward=document.getElementById('chestReward'),
+      themeToggle=document.getElementById('themeToggle'),hintBtn=document.getElementById('hintBtn'),
+      hintText=document.getElementById('hintText');
+
+  var KEY_SVG='<svg class="pixel" viewBox="0 0 9 13" style="width:100%;height:100%"><use href="#pixelKey"/></svg>';
+  function renderChest(){
+    chestCount.textContent=found.length+'/5';
+    chestList.innerHTML='';
+    KEYS.forEach(function(k){
+      var li=document.createElement('li');
+      var has=found.indexOf(k.id)>=0;
+      if(has){li.className='found';li.innerHTML='<span class="key-icon-list" style="display:inline-block">'+KEY_SVG+'</span> '+k.name;}
+      else{li.innerHTML='🔒 <span style="opacity:.5">???</span>';}
+      chestList.appendChild(li);
+    });
+    if(found.length>=5){
+      document.getElementById('chestIconUse').setAttribute('href','#chestOpen');
+      chestBtn.classList.add('full');
+      chestReward.hidden=false;
+      hintBtn.hidden=true;
+    }
+    if(found.length===0 && !sessionStorage.getItem('ych_chest_seen')){chestBtn.classList.add('pulse');}
+  }
+
+  function applyTheme(mode){
+    document.documentElement.setAttribute('data-theme',mode);
+    localStorage.setItem('ych_theme_pref',mode);
+  }
+
+  window.toggleTheme=function(){
+    var cur=document.documentElement.getAttribute('data-theme')==='light'?'dark':'light';
+    applyTheme(cur);
+  };
+
+  window.toggleChestPanel=function(){
+    chestPanel.hidden=!chestPanel.hidden;
+    chestBtn.classList.remove('pulse');
+    sessionStorage.setItem('ych_chest_seen','1');
+  };
+  document.addEventListener('click',function(e){
+    if(!chestPanel.hidden && !chestWidget.contains(e.target)) chestPanel.hidden=true;
+  });
+
+  var HINTS={
+    k1:'Survole le nom de Yasser Chettour (en haut de la page) pendant 1,5 seconde — une clé apparaît, clique dessus.',
+    k2:'Dans le terminal interactif, tape : sudo su',
+    k3:'Triple-clique sur le badge "MITRE ATT&CK", dans la section Compétences.',
+    k4:'Survole le titre "Activité GitHub" pendant 2 secondes, sans cliquer.',
+    k5:'Le Konami Code, n\'importe où sur la page : ↑ ↑ ↓ ↓ ← → ← → B A'
+  };
+  var hintPos=0;
+  window.showHint=function(){
+    var remaining=KEYS.filter(function(k){return found.indexOf(k.id)<0;});
+    if(remaining.length===0){hintText.textContent='Toutes les clés sont trouvées. 🏆';return;}
+    var k=remaining[hintPos % remaining.length];
+    hintText.textContent=k.name.length?HINTS[k.id]:HINTS[k.id];
+    hintPos++;
+  };
+
+  function burst(x,y,count,colors,minDist,maxDist){
+    minDist = minDist || 30; maxDist = maxDist || 100;
+    for(var i=0;i<count;i++){
+      var p=document.createElement('span');
+      p.className='particle';
+      var angle=Math.random()*Math.PI*2, dist=minDist+Math.random()*(maxDist-minDist);
+      p.style.left=x+'px';p.style.top=y+'px';
+      p.style.setProperty('--dx',(Math.cos(angle)*dist)+'px');
+      p.style.setProperty('--dy',(Math.sin(angle)*dist)+'px');
+      p.style.setProperty('--rot',(Math.random()*360)+'deg');
+      p.style.background=colors[Math.floor(Math.random()*colors.length)];
+      p.style.animationDelay=(Math.random()*80)+'ms';
+      document.body.appendChild(p);
+      (function(el){setTimeout(function(){el.remove();},900);})(p);
+    }
+  }
+
+  function cornerFireworks(){
+    var w=innerWidth, h=innerHeight;
+    var corners=[{x:70,y:h-60},{x:w-70,y:h-60}];
+    var colors=['#ffb000','#00ff66','#22e0ff','#ffd466'];
+    for(var round=0; round<3; round++){
+      (function(r){
+        setTimeout(function(){
+          corners.forEach(function(c){
+            var jx=c.x+(Math.random()*36-18), jy=c.y+(Math.random()*30-15);
+            burst(jx, jy, 26, colors, 50, 210);
+          });
+        }, 120 + r*420);
+      })(round);
+    }
+  }
+
+  function circleReveal(cx, cy, duration, onDone){
+    var mask=document.getElementById('unlockDarkMask');
+    var maxR=Math.hypot(innerWidth, innerHeight);
+    var start=null;
+    function frame(ts){
+      if(!start) start=ts;
+      var t=Math.min((ts-start)/duration, 1);
+      var e=t<0.5 ? 2*t*t : -1+(4-2*t)*t; // easeInOutQuad
+      var r=e*maxR*1.08;
+      var g='radial-gradient(circle at '+cx+'px '+cy+'px, transparent 0px, transparent '+r+'px, black '+(r+2)+'px, black '+(maxR*2.2)+'px)';
+      mask.style.webkitMaskImage=g;
+      mask.style.maskImage=g;
+      if(t<1) requestAnimationFrame(frame); else if(onDone) onDone();
+    }
+    requestAnimationFrame(frame);
+  }
+
+  function bigUnlock(){
+    var overlay=document.getElementById('unlockOverlay');
+    var pContainer=document.getElementById('unlockParticles');
+    var chestSvg=document.getElementById('unlockChestSvg');
+    var chestUse=document.getElementById('unlockChestUse');
+    var darkMask=document.getElementById('unlockDarkMask');
+    chestUse.setAttribute('href','#chestClosed');
+    chestSvg.classList.remove('popped');
+    overlay.classList.remove('show','text-show');
+    darkMask.style.webkitMaskImage='none';
+    darkMask.style.maskImage='none';
+    overlay.hidden=false;
+    var cx=innerWidth/2, cy=innerHeight/2-30; // point d'origine : la bouche du coffre
+    requestAnimationFrame(function(){
+      overlay.classList.add('show');
+      burst(innerWidth/2,innerHeight/2,55,['#ffb000','#00ff66','#ffd466']);
+    });
+    cornerFireworks();
+    setTimeout(function(){
+      chestUse.setAttribute('href','#chestOpen');
+      chestSvg.classList.add('popped');
+      burst(cx,cy,35,['#ffb000','#ffd466','#7de8c0']);
+      applyTheme('light'); // masqué sous le voile sombre, révélé par le trou qui grandit
+      circleReveal(cx, cy, 900);
+    }, 520);
+    setTimeout(function(){ overlay.classList.add('text-show'); }, 1500);
+    setTimeout(function(){
+      overlay.classList.remove('show','text-show');
+      setTimeout(function(){
+        overlay.hidden=true; pContainer.innerHTML='';
+        darkMask.style.webkitMaskImage='none'; darkMask.style.maskImage='none';
+      }, 450);
+    }, 2900);
+  }
+
+  function flyToChest(originEl){
+    var rect = originEl.getBoundingClientRect ? originEl.getBoundingClientRect() : null;
+    var targetRect = chestBtn.getBoundingClientRect();
+    var startX = rect ? rect.left+rect.width/2 : targetRect.left+14;
+    var startY = rect ? rect.top+rect.height/2 : targetRect.top+14;
+    var endX = targetRect.left+16, endY = targetRect.top+14;
+    var midX = (startX+endX)/2, midY = Math.min(startY,endY)-90; // point de contrôle : arc vers le haut
+
+    burst(startX, startY, 10, ['#ffb000','#ffd466']);
+
+    var fly=document.createElement('div');
+    fly.className='key-fly';
+    fly.innerHTML='<svg class="pixel" viewBox="0 0 9 13" style="width:20px;height:29px"><use href="#pixelKey"/></svg>';
+    fly.style.left=(startX-10)+'px';fly.style.top=(startY-14)+'px';
+    document.body.appendChild(fly);
+
+    var duration=680, start=null;
+    function frame(ts){
+      if(!start) start=ts;
+      var t=Math.min((ts-start)/duration,1);
+      var e=1-Math.pow(1-t,3); // ease-out cubic
+      var x=(1-e)*(1-e)*startX+2*(1-e)*e*midX+e*e*endX;
+      var y=(1-e)*(1-e)*startY+2*(1-e)*e*midY+e*e*endY;
+      var scale=1-0.6*e, rot=720*e;
+      fly.style.transform='translate('+(x-startX-10)+'px,'+(y-startY-14)+'px) scale('+scale+') rotate('+rot+'deg)';
+      fly.style.opacity=1-0.3*e;
+      if(t<1) requestAnimationFrame(frame); else finish();
+    }
+    requestAnimationFrame(frame);
+
+    function finish(){
+      fly.remove();
+      burst(endX, endY, 14, ['#ffb000','#00ff66','#ffd466']);
+      chestBtn.classList.add('bump');
+      setTimeout(function(){chestBtn.classList.remove('bump');},500);
+      renderChest();
+      if(found.length>=5 && !unlocked){
+        unlocked=true;
+        localStorage.setItem('ych_theme_unlocked','1');
+        themeToggle.hidden=false;
+        setTimeout(function(){
+          bigUnlock();
+          setTimeout(function(){chestPanel.hidden=false;}, 2800);
+        }, 150);
+      }
+    }
+  }
+
+  window.collectKey=function(id, originEl){
+    if(found.indexOf(id)>=0){
+      if(typeof print==='function') print('<span class="d">clé '+id+' déjà en poche.</span>');
+      return;
+    }
+    found.push(id);
+    localStorage.setItem('ych_keys', JSON.stringify(found));
+    if(id==='k1' && key1){key1.classList.remove('show');key1.style.display='none';}
+    flyToChest(originEl || chestBtn);
+  };
+
+  // ---- Clé #1 : hover 1.5s sur le nom, puis clic ----
+  var heroName=document.getElementById('heroName'),key1=document.getElementById('key1'),hoverTimer;
+  if(found.indexOf('k1')>=0 && key1){ key1.style.display='none'; }
+  if(heroName){
+    heroName.addEventListener('mouseenter',function(){
+      if(found.indexOf('k1')>=0) return;
+      hoverTimer=setTimeout(function(){key1.classList.add('show');},1500);
+    });
+    heroName.addEventListener('mouseleave',function(){clearTimeout(hoverTimer);});
+  }
+
+  // ---- Clé #3 : triple-clic sur le badge MITRE ATT&CK ----
+  var mitreClicks=0, mitreTimer=null;
+  window.mitreClick=function(){
+    mitreClicks++;
+    clearTimeout(mitreTimer);
+    mitreTimer=setTimeout(function(){mitreClicks=0;},1200);
+    if(mitreClicks>=3){
+      mitreClicks=0;
+      collectKey('k3', document.getElementById('mitreChip'));
+    }
+  };
+
+  // ---- Clé #4 : survol 2s sur l'en-tête GitHub ----
+  var ghZone=document.getElementById('ghHoverZone'), ghTimer;
+  if(ghZone){
+    ghZone.addEventListener('mouseenter',function(){
+      ghTimer=setTimeout(function(){collectKey('k4', ghZone);},2000);
+    });
+    ghZone.addEventListener('mouseleave',function(){clearTimeout(ghTimer);});
+  }
+
+  // ---- Clé #5 : Konami Code (↑↑↓↓←→←→BA) ----
+  var konamiSeq=['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a'];
+  var konamiPos=0;
+  document.addEventListener('keydown',function(e){
+    var key = e.key.length===1 ? e.key.toLowerCase() : e.key;
+    if(key===konamiSeq[konamiPos]){
+      konamiPos++;
+      if(konamiPos===konamiSeq.length){
+        konamiPos=0;
+        collectKey('k5', chestBtn);
+      }
+    } else {
+      konamiPos = (key===konamiSeq[0]) ? 1 : 0;
+    }
+  });
+
+  // ---- Clé #2 : commande secrète dans le terminal (branchée depuis runCmd) ----
+  window.__collectK2 = function(){ collectKey('k2', document.getElementById('chestBtn')); };
+
+  // init
+  renderChest();
+  if(unlocked){
+    applyTheme(localStorage.getItem('ych_theme_pref')||'light');
+    themeToggle.hidden=false;
+  }
+  window.chestWidget=document.getElementById('chestWidget');
 })();
 </script>
 </body>
