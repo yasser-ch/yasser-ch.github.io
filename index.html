@@ -409,7 +409,7 @@
           <div class="metric"><b>10</b><span data-fr="endpoints API" data-en="API endpoints">endpoints API</span></div>
         </div>
         <div class="chips" style="margin-bottom:16px"><span class="chip">Python</span><span class="chip">scikit-learn</span><span class="chip">Flask</span><span class="chip">React</span><span class="chip">URLhaus</span><span class="chip">Threat Intel</span></div>
-        <div class="plinks"><a class="plink" href="https://github.com/yasser-ch/Phishing-URL-Detection" target="_blank" rel="noopener">⌥ GitHub</a></div>
+        <div class="plinks"><a class="plink" href="https://github.com/yasser-ch/Phishing-URL-Detection" target="_blank" rel="noopener">⌥ GitHub</a><a class="plink" href="#terminal-zone" onclick="setTimeout(()=>{inp.value='scan http://secure-paypa1.account.verify-login.info-update.com/signin';inp.focus();},550)" data-fr="▸ Essayer dans le terminal" data-en="▸ Try it in the terminal">▸ Essayer dans le terminal</a></div>
       </div>
 
       <div class="pcard reveal">
@@ -517,13 +517,13 @@
           </ul>
         </div>
         <div class="tl-item">
-          <div class="date">Août — Sept 2025 · Tanger · <span data-fr="Sur site" data-en="On-site">Sur site</span></div>
-          <h3 data-fr="Stagiaire en Développement Informatique" data-en="Software Development Intern">Stagiaire en Développement Informatique</h3>
-          <div class="org">SEBN-MA — Sumitomo Electric Bordnetze Morocco</div>
+          <div class="date">Août 2025 · Tanger · <span data-fr="Sur site" data-en="On-site">Sur site</span></div>
+          <h3 data-fr="Stage d'observation — Développement Informatique" data-en="Observation Internship — Software Development">Stage d'observation — Développement Informatique</h3>
+          <div class="org">Sumitomo Electric Bordnetze Morocco (SEBN-MA) — Tanger</div>
           <ul>
-            <li data-fr="Développement d'une application d'audit VDA ISA pour la conformité Tisax" data-en="Built a VDA ISA audit application for Tisax compliance">Développement d'une application d'audit VDA ISA pour la conformité Tisax</li>
-            <li data-fr="Automatisation de l'étiquetage et de la classification des résultats d'audit" data-en="Automated labeling and classification of audit results">Automatisation de l'étiquetage et de la classification des résultats d'audit</li>
-            <li data-fr="Amélioration du suivi de conformité sécurité des systèmes internes" data-en="Improved security compliance tracking of internal systems">Amélioration du suivi de conformité sécurité des systèmes internes</li>
+            <li data-fr="Développement d'une application web (Python, Flask) digitalisant l'intégralité du référentiel d'audit VDA ISA (8 chapitres) pour la conformité Tisax" data-en="Built a web application (Python, Flask) digitizing the full VDA ISA audit framework (8 chapters) for Tisax compliance">Développement d'une application web (Python, Flask) digitalisant l'intégralité du référentiel d'audit VDA ISA (8 chapitres) pour la conformité Tisax</li>
+            <li data-fr="Intégration d'une API d'IA générative pour automatiser le scoring des réponses qualitatives (prompt engineering)" data-en="Integrated a generative AI API to automate scoring of qualitative responses (prompt engineering)">Intégration d'une API d'IA générative pour automatiser le scoring des réponses qualitatives (prompt engineering)</li>
+            <li data-fr="Modélisation du catalogue VDA ISA en structure de données hiérarchique et génération automatisée de rapports de maturité" data-en="Modeled the VDA ISA catalog as a hierarchical data structure and automated maturity report generation">Modélisation du catalogue VDA ISA en structure de données hiérarchique et génération automatisée de rapports de maturité</li>
           </ul>
         </div>
       </div>
@@ -836,12 +836,35 @@ function showQuote(){qt.style.opacity=0;qa.style.opacity=0;setTimeout(()=>{
   qi=(qi+1)%QUOTES.length;},500);}
 showQuote();setInterval(showQuote,6000);
 
+/* ---- heuristique scan (démo pédagogique, pas le modèle ML réel) ---- */
+const KNOWN_BRANDS=['paypal','google','amazon','facebook','apple','microsoft','netflix','instagram','bank'];
+function levenshtein(a,b){const m=[];for(let i=0;i<=b.length;i++)m[i]=[i];for(let j=0;j<=a.length;j++)m[0][j]=j;
+  for(let i=1;i<=b.length;i++)for(let j=1;j<=a.length;j++)m[i][j]=b[i-1]===a[j-1]?m[i-1][j-1]:1+Math.min(m[i-1][j-1],m[i][j-1],m[i-1][j]);
+  return m[b.length][a.length];}
+function scanUrl(raw){
+  let url;try{url=new URL(raw.includes('://')?raw:'http://'+raw);}catch(e){return null;}
+  const host=url.hostname,checks=[];let score=0;
+  const long=raw.length>54;checks.push({label:'length',val:raw.length+' chars',bad:long});if(long)score++;
+  const isIP=/^\d{1,3}(\.\d{1,3}){3}$/.test(host);checks.push({label:'IP as host',val:isIP?'yes':'no',bad:isIP});if(isIP)score++;
+  const hasAt=raw.includes('@');checks.push({label:'"@" in URL',val:hasAt?'yes':'no',bad:hasAt});if(hasAt)score++;
+  const subCount=Math.max(0,host.split('.').length-2);const manySubs=subCount>=3;checks.push({label:'subdomains',val:subCount,bad:manySubs});if(manySubs)score++;
+  const noHttps=url.protocol!=='https:';checks.push({label:'https',val:noHttps?'absent':'present',bad:noHttps});if(noHttps)score++;
+  const mainLabel=(host.split('.').slice(-2)[0]||host).toLowerCase();
+  const tokens=mainLabel.split(/[^a-z0-9]+/).filter(Boolean).concat([mainLabel]);
+  let typo=null;
+  for(const token of tokens){for(const brand of KNOWN_BRANDS){if(token===brand)continue;
+    const d=levenshtein(token,brand);if(d>0&&d<=2&&Math.abs(token.length-brand.length)<=2){typo={brand,token,d};break;}}if(typo)break;}
+  checks.push({label:'typosquat',val:typo?`"${typo.token}" ≈ "${typo.brand}" (dist: ${typo.d})`:'no',bad:!!typo});if(typo)score++;
+  const verdict=score>=3?'SUSPICIOUS':(score>=1?'LOW RISK':'LOOKS CLEAN');
+  return{checks,score,total:checks.length,verdict};
+}
+
 /* interactive terminal */
 const out=document.getElementById('ltOut'),inp=document.getElementById('ltInput'),body=document.getElementById('ltBody');
 function print(html){const d=document.createElement('div');d.className='line';d.innerHTML=html;out.appendChild(d);body.scrollTop=body.scrollHeight;}
 function printCmd(c){print('<span class="g">visitor@yasser-ch:~$</span> '+c.replace(/</g,'&lt;'));}
 const CMDS={
-  help:()=>print('<span class="c">available commands:</span>\n  whoami   skills   projects   certs   contact   cv\n  hack     sudo     coffee     matrix   atlas   clear'),
+  help:()=>print('<span class="c">available commands:</span>\n  whoami   skills   projects   certs   contact   cv\n  scan &lt;url&gt;  hack     sudo     coffee     matrix   atlas   clear'),
   whoami:()=>print('Yasser Chettour — <span class="g">Cyberdefense &amp; Embedded Telecom</span> engineering student @ ENSA Marrakech.\nBlue Team / SOC enthusiast · CTF finalist · ethical hacker.'),
   skills:()=>print('<span class="c">SOC/SIEM</span> Wazuh·Zeek·Arkime   <span class="c">Network</span> pfSense·Suricata·IPsec\n<span class="c">Forensics</span> Wireshark·Autopsy   <span class="c">Offensive</span> Nmap·Metasploit·Burp'),
   projects:()=>print('01 Distributed SOC   02 Phishing Detection     03 Network Security Infra\n04 PKI Platform       05 Linux Hardening        06 Behavior Profiler\n07 Blockchain WebApp  08 DepthCharge       <span class="d">— supply chain attack detector</span>\n<span class="d">↑ scroll up to the projects section for details</span>'),
@@ -853,6 +876,17 @@ const CMDS={
   atlas:()=>print('<span class="a">   /\\_/\\\n  ( o.o )   meow.\n   > ^ <</span>\n<span class="g">Atlas</span> — black cat, full-time SOC supervisor. 🐈‍⬛\nDetects anomalies (and warm keyboards) with zero false negatives.'),
   cv:()=>{print('<span class="c">⇩</span> downloading <span class="g">CV_Yasser_Chettour.pdf</span> ...\n<span class="d">no download? </span><a href="assets/CV_Yasser_Chettour.pdf" download style="color:var(--cyan)">click here</a>');const a=document.createElement('a');a.href='assets/CV_Yasser_Chettour.pdf';a.download='';document.body.appendChild(a);a.click();a.remove();},
   clear:()=>{out.innerHTML='';},
+  scan:(arg)=>{
+    if(!arg)return print('<span class="m">usage:</span> scan &lt;url&gt;\n<span class="d">example: scan http://secure-paypa1.account.verify-login.info-update.com/signin</span>');
+    const r=scanUrl(arg);
+    if(!r)return print('<span class="m">invalid URL</span>');
+    let lines=`<span class="d">&gt; analyzing ${arg} ...</span>\n`;
+    for(const c of r.checks){lines+=`  ${c.bad?'<span class="m">✗</span>':'<span class="g">✓</span>'} ${c.label.padEnd(16)} ${c.val}\n`;}
+    const vcolor=r.verdict==='SUSPICIOUS'?'m':(r.verdict==='LOW RISK'?'d':'g');
+    lines+=`\n  verdict: <span class="${vcolor}">${r.verdict}</span> (${r.score}/${r.total} heuristics triggered)\n`;
+    lines+=`  <span class="d">[demo heuristique — le vrai modèle ML tourne sur l'API du projet]</span>`;
+    print(lines);
+  },
   hack:()=>runHack()
 };
 function runHack(){
@@ -861,10 +895,13 @@ function runHack(){
   else{setTimeout(()=>print('<span class="a">Just kidding 😄 — I only do <b>ethical</b> hacking. 🛡️</span>'),300);}})();
 }
 function runCmd(raw){
-  const c=raw.trim().toLowerCase();
+  const trimmed=raw.trim();
+  const c=trimmed.toLowerCase();
   if(!c)return;
-  printCmd(raw.trim());
-  if(c==='ls')return print('skills  projects  certs  contact  cv.pdf  atlas.jpg  secrets.txt');
+  printCmd(trimmed);
+  if(c.startsWith('scan '))return CMDS.scan(trimmed.slice(5).trim());
+  if(c==='scan')return CMDS.scan();
+  if(c==='ls')return print('skills  projects  certs  contact  cv.pdf  scan.sh  atlas.jpg  secrets.txt');
   if(c==='cat'||c==='cat atlas.jpg')return CMDS.atlas();
   if(c==='cat cv.pdf'||c==='open cv.pdf')return CMDS.cv();
   if(c==='cat secrets.txt')return print('<span class="m">Permission denied.</span> <span class="d">(nice persistence though 👏)</span>');
