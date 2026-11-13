@@ -3,492 +3,546 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<style>html{color-scheme:dark}body{margin:0}</style>
-<title>PHP2Shell, one request at a time</title>
-<meta name="description" content="An interactive walkthrough of PHP2Shell (CVE-2026-109618 and CVE-2026-109619): how one web request can reach code execution on an unpatched PHP server, and how to check yours.">
-<meta property="og:title" content="PHP2Shell, explained by following one request">
-<meta property="og:description" content="Step through one request on an unpatched and a patched PHP server, then check your own PHP version.">
-<meta property="og:type" content="article">
+<style>:root{padding-block:env(safe-area-inset-top,0px) env(safe-area-inset-bottom,0px)}</style>
+<title>PHP2Shell in one screen</title>
+<meta name="description" content="PHP2Shell (CVE-2026-109618 and CVE-2026-109619) in one screen: watch a request hit an unpatched and a patched PHP server, check your version, and see what to do.">
+<meta property="og:title" content="PHP2Shell in one screen">
+<meta property="og:description" content="Watch one web request hit an unpatched and a patched PHP server. Then check your own version.">
+<meta property="og:type" content="website">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
 <style>
+/* light by default; dark is an explicit toggle */
 :root{
-    --bg:#070A08;
-    --panel:#0E1410;
-    --ink:#E9F1EC;
-    --muted:#8DA195;
-    --line:#1E2B23;
-    --hot:#FF4B5C;
-    --hot-bg:#2A0E13;
-    --ok:#35F08F;
-    --ok-bg:#0C2A1B;
-    --focus:#35F08F;
-    --on-hot:#14050A;
-    --on-ok:#03150C;
-    color-scheme:dark;
+  --bg:#F3F6F4; --panel:#FFFFFF; --ink:#0A120D; --muted:#4A5C51; --line:#C9D6CE;
+  --hot:#C4122B; --hot-bg:#FCE6E9; --ok:#0A7A43; --ok-bg:#DDF3E7; --focus:#0A7A43;
+  --on-hot:#FFFFFF; --on-ok:#FFFFFF; color-scheme:light;
   --display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
   --body:"Instrument Sans","Segoe UI",system-ui,sans-serif;
   --code:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  --ease:cubic-bezier(.3,.7,.2,1);
 }
-@media (prefers-color-scheme:light){
-  :root:not([data-theme="dark"]){
-    --bg:#F3F6F4;
-    --panel:#FFFFFF;
-    --ink:#0A120D;
-    --muted:#4A5C51;
-    --line:#C9D6CE;
-    --hot:#C4122B;
-    --hot-bg:#FCE6E9;
-    --ok:#0A7A43;
-    --ok-bg:#DDF3E7;
-    --focus:#0A7A43;
-    --on-hot:#FFFFFF;
-    --on-ok:#FFFFFF;
-    color-scheme:light;
-  }
-}
-:root[data-theme="light"]{
-    --bg:#F3F6F4;
-    --panel:#FFFFFF;
-    --ink:#0A120D;
-    --muted:#4A5C51;
-    --line:#C9D6CE;
-    --hot:#C4122B;
-    --hot-bg:#FCE6E9;
-    --ok:#0A7A43;
-    --ok-bg:#DDF3E7;
-    --focus:#0A7A43;
-    --on-hot:#FFFFFF;
-    --on-ok:#FFFFFF;
-    color-scheme:light;
+:root[data-theme="dark"]{
+  --bg:#070A08; --panel:#0E1410; --ink:#E9F1EC; --muted:#8DA195; --line:#22312A;
+  --hot:#FF4B5C; --hot-bg:#2A0E13; --ok:#35F08F; --ok-bg:#0C2A1B; --focus:#35F08F;
+  --on-hot:#14050A; --on-ok:#03150C; color-scheme:dark;
 }
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
-body{margin:0;background:var(--bg);color:var(--ink);font:400 17px/1.6 var(--body);padding-block:0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.5 var(--body);
+  padding-block:0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 a{color:var(--ok);text-underline-offset:3px}
-:focus-visible{outline:3px solid var(--focus);outline-offset:3px;border-radius:4px}
-code,.mono{font-family:var(--code);font-size:.88em}
-.wrap{max-width:1080px;margin:0 auto}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--focus);outline-offset:3px;border-radius:6px}
+code,.mono{font-family:var(--code);font-size:.9em}
 
-/* header */
-.top{padding:28px 0 8px}
-.byline{font:500 14px var(--code);color:var(--ok)}
-h1{font:800 clamp(34px,6.2vw,64px)/1.02 var(--display);letter-spacing:-.02em;margin:18px 0 16px;max-width:15ch}
-.lede{font-size:clamp(18px,2.2vw,21px);max-width:60ch;margin:0 0 8px}
-.lede+.lede{color:var(--muted);font-size:16px}
+.app{height:calc(100dvh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));max-width:1120px;margin:0 auto;display:grid;grid-template-rows:auto minmax(0,1fr) auto;gap:10px}
 
-.cves{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:22px 0 0;max-width:760px}
-@media(max-width:620px){.cves{grid-template-columns:1fr}}
-.cve{border:2px solid var(--line);border-left:4px solid var(--hot);border-radius:10px;background:var(--panel);padding:14px 16px;min-width:0}
-.cve code{font-size:16px;font-weight:500;color:var(--hot)}
-.cve p{margin:4px 0 0;font-size:15px;color:var(--muted)}
-.cve .links{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:10px;font-size:15px;font-weight:600}
+/* top bar */
+.bar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:12px}
+.brand{display:flex;align-items:baseline;gap:12px;min-width:0}
+.logo{font:800 24px/1 var(--display);letter-spacing:-.02em}
+.logo i{font-style:normal;color:var(--ok)}
+.by{font:500 12px var(--code);color:var(--muted)}
+.tools{display:flex;align-items:center;gap:8px}
+.theme{width:34px;height:34px;border-radius:50%;border:2px solid var(--line);background:var(--panel);cursor:pointer;font-size:16px;line-height:1;display:grid;place-items:center}
+.theme:hover{border-color:var(--ok)}
+.live{display:inline-flex;align-items:center;gap:8px;font:500 12px var(--code);color:var(--hot);border:2px solid var(--hot);border-radius:999px;padding:4px 10px;white-space:nowrap}
+.live::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--hot);animation:blink 1.6s ease-in-out infinite}
+@keyframes blink{50%{opacity:.25}}
 
-/* explorer */
-.explorer>*{min-width:0}
-.explorer{display:grid;gap:24px;margin:20px 0 0;grid-template-columns:1fr;grid-template-areas:"ctrl" "stage" "cap"}
-@media(min-width:900px){
-  .explorer{grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);grid-template-areas:"stage ctrl" "stage cap";align-items:start}
-}
-.controls{grid-area:ctrl;display:flex;flex-direction:column;gap:14px}
-.seg{display:inline-flex;border:2px solid var(--ink);border-radius:999px;padding:3px;gap:3px;align-self:flex-start;background:var(--panel)}
-.seg button{font:600 15px var(--body);border:0;background:transparent;color:var(--ink);padding:9px 16px;border-radius:999px;cursor:pointer}
+/* panels */
+.panels{min-height:0;position:relative}
+.panel{height:100%;overflow:auto;overscroll-behavior:contain;padding:4px 2px 6px}
+.panel.in{animation:in .4s var(--ease)}
+.panel:not(#p-explain){-webkit-mask-image:linear-gradient(#000 calc(100% - 22px),transparent);mask-image:linear-gradient(#000 calc(100% - 22px),transparent);padding-bottom:22px}
+@keyframes in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.panel h1{font:800 clamp(26px,4vw,36px)/1.1 var(--display);letter-spacing:-.015em;margin:4px 0 8px}
+.lead{color:var(--muted);margin:0 0 16px;max-width:60ch}
+
+/* explain */
+.explain{display:flex;flex-direction:column;gap:clamp(10px,2vh,22px);min-height:100%}
+.intro{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 20px}
+.def{margin:0;max-width:56ch;font-size:clamp(15px,1.5vw,18px);line-height:1.4}
+.def b{font-weight:600}
+.cves{display:flex;gap:8px;flex-wrap:wrap}
+.cve{display:inline-flex;align-items:center;gap:6px;border:2px solid var(--line);border-left:4px solid var(--hot);border-radius:10px;background:var(--panel);padding:5px 10px;font-size:13.5px;text-decoration:none;color:var(--ink);transition:border-color .2s}
+.cve code{color:var(--hot)}
+.cve span{color:var(--ok);font-weight:600}
+.cve i,.live i{font-style:normal}
+.cve:hover{border-color:var(--ok)}
+
+.pipe{position:relative;flex:1;min-height:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:clamp(20px,4vw,52px);padding-top:48px;align-content:center;align-items:stretch}
+.line,.lfill{position:absolute;border-radius:2px;pointer-events:none}
+.line{background:var(--line);z-index:0}
+.lfill{background:var(--ok);z-index:1;transition:width .75s var(--ease),height .75s var(--ease),background .3s;box-shadow:0 0 10px var(--ok)}
+.pipe[data-flag="1"] .lfill{background:var(--hot);box-shadow:0 0 10px var(--hot)}
+.node{position:relative;z-index:2;background:var(--panel);border:2px solid var(--line);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:6px;min-height:clamp(112px,20vh,170px);transition:border-color .35s,background .35s}
+.node::before{content:"";position:absolute;left:50%;top:-34px;height:34px;width:3px;margin-left:-1.5px;background:var(--line);transition:background .35s}
+.node.active{border-color:var(--ink)}
+.node.active::before{background:var(--ink)}
+.node.bad{border-color:var(--hot);background:var(--hot-bg)}
+.node.bad::before{background:var(--hot)}
+.node.good{border-color:var(--ok);background:var(--ok-bg)}
+.node.good::before{background:var(--ok)}
+.nhead{display:flex;flex-direction:column;gap:2px}
+.nname{font:700 18px/1.15 var(--display)}
+.nnote{font-size:14px;color:var(--muted);min-height:21px;transition:color .3s}
+.nnote.alert{color:var(--hot);font:500 13.5px var(--code)}
+.node.good .nnote.alert{color:var(--ok)}
+.node.skipped .nnote{color:var(--hot);font-weight:600}
+.mem{display:grid;grid-template-columns:repeat(24,1fr);gap:3px;margin-top:auto}
+.mem i{height:16px;border-radius:3px;background:var(--line);transition:background .3s}
+.mem i.hot{background:var(--hot)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:auto}
+.chips span{font-size:12.5px;font-weight:500;padding:3px 9px;border-radius:999px;border:2px solid var(--ink);transition:opacity .35s}
+.node.skipped .chips span{opacity:.4;border-style:dashed}
+.packet{position:absolute;left:0;top:0;z-index:3;padding:4px 11px;border-radius:999px;background:var(--ink);color:var(--bg);font:700 13px/1.3 var(--display);white-space:nowrap;transition:transform .75s var(--ease),background .3s,box-shadow .3s;will-change:transform}
+.pipe[data-flag="1"] .packet{background:var(--hot);color:var(--on-hot);box-shadow:0 0 18px var(--hot)}
+.pipe[data-flag="2"] .packet{background:var(--ok);color:var(--on-ok);box-shadow:0 0 18px var(--ok)}
+
+.under{display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
+.story .count{font:500 12px var(--code);color:var(--ok);margin:0 0 4px}
+.story h2{font:800 clamp(22px,3.2vw,32px)/1.1 var(--display);letter-spacing:-.015em;margin:0 0 6px}
+.story p{margin:0;max-width:54ch;color:var(--ink);font-size:clamp(15px,1.4vw,17px);min-height:2.9em}
+.story.swap h2,.story.swap p{animation:swap .45s var(--ease)}
+@keyframes swap{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.ctrl{display:flex;flex-direction:column;gap:10px}
+.pills{display:flex;gap:6px}
+.pill{flex:1;height:22px;padding:0;border:0;background:transparent;cursor:pointer;position:relative}
+.pill::before,.pill::after{content:"";position:absolute;left:0;right:0;top:8px;height:6px;border-radius:3px}
+.pill::before{background:var(--line)}
+.pill::after{background:var(--ok);width:0}
+.pill.done::after{width:100%}
+.pill.run::after{animation:fillbar var(--dur,3.4s) linear forwards}
+.pipe[data-flag="1"]~.under .pill::after{background:var(--hot)}
+@keyframes fillbar{from{width:0}to{width:100%}}
+.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.seg{display:inline-flex;border:2px solid var(--ink);border-radius:999px;padding:3px;gap:3px;background:var(--panel)}
+.seg button{border:0;background:transparent;font:600 14px var(--body);padding:8px 14px;border-radius:999px;cursor:pointer;min-height:38px}
 .seg button[aria-pressed="true"].v{background:var(--hot);color:var(--on-hot)}
 .seg button[aria-pressed="true"].p{background:var(--ok);color:var(--on-ok)}
-.steps{display:flex;gap:8px;flex-wrap:wrap}
-.steps button{width:44px;height:44px;border-radius:50%;border:2px solid var(--ink);background:var(--panel);color:var(--ink);font:700 16px var(--display);cursor:pointer}
-.steps button[aria-current="step"]{background:var(--ok);border-color:var(--ok);color:var(--on-ok)}
-.nav{display:flex;gap:10px}
-.nav button{font:600 15px var(--body);border:2px solid var(--ink);background:var(--panel);color:var(--ink);padding:10px 18px;border-radius:10px;cursor:pointer}
-.nav button.next{background:var(--ok);border-color:var(--ok);color:var(--on-ok)}
-.nav button:disabled{opacity:.4;cursor:not-allowed}
+.seg button.nudge{animation:nudge 1s ease-in-out 3}
+@keyframes nudge{50%{background:var(--ok);color:var(--on-ok)}}
+.btns{display:flex;gap:8px;margin-left:auto}
+.btn{width:44px;height:44px;border-radius:50%;border:2px solid var(--ink);background:var(--panel);cursor:pointer;display:grid;place-items:center;font:700 16px var(--display)}
+.btn.main{background:var(--ok);border-color:var(--ok);color:var(--on-ok)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn svg{width:16px;height:16px;fill:currentColor}
 
-.caption{grid-area:cap;background:var(--panel);border:2px solid var(--line);border-radius:14px;padding:20px 22px;min-height:250px}
-.caption .count{font:500 13px var(--code);color:var(--ok);margin:0 0 6px}
-.caption h2{font:700 clamp(22px,3vw,28px)/1.15 var(--display);margin:0 0 10px;letter-spacing:-.01em}
-.caption p{margin:0;max-width:52ch}
-.stage-note{font-size:13.5px;color:var(--muted);margin:12px 0 0}
-
-/* stage */
-.stage{grid-area:stage;position:relative;padding-left:98px;display:flex;flex-direction:column;gap:14px}
-.layer{position:relative;background:var(--panel);border:2px solid var(--line);border-radius:12px;padding:12px 14px;transition:border-color .35s,background .35s}
-.layer .lname{font:700 17px var(--display)}
-.layer .lnote{font-size:14px;color:var(--muted);min-height:21px}
-.layer.active{border-color:var(--ink)}
-.stage[data-mode="vuln"] .layer.bad{border-color:var(--hot);background:var(--hot-bg)}
-.stage[data-mode="patched"] .layer.good{border-color:var(--ok);background:var(--ok-bg)}
-.layer.bad .lnote{color:var(--hot);font-weight:600}
-.layer.good .lnote{color:var(--ok);font-weight:600}
-.mem{display:grid;grid-template-columns:repeat(12,1fr);gap:4px;margin:10px 0 2px}
-@media(max-width:520px){.mem{grid-template-columns:repeat(8,1fr)}}
-.mem i{aspect-ratio:1;border-radius:3px;background:var(--line);transition:background .35s}
-.mem i.hot{background:var(--hot)}
-.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
-.chips span{font-size:14px;font-weight:500;padding:4px 10px;border-radius:999px;border:2px solid var(--ink);transition:opacity .35s,border-style .35s}
-.layer.skipped .chips span{opacity:.45;border-style:dashed}
-
-.packet{position:absolute;left:0;width:88px;height:38px;display:flex;align-items:center;justify-content:center;border-radius:10px;background:var(--ink);color:var(--bg);font:700 14px var(--display);transition:top .6s cubic-bezier(.3,.7,.2,1),background .35s;z-index:2}
-.stage[data-mode="vuln"] .packet.flag{background:var(--hot);color:var(--on-hot)}
-.stage[data-mode="patched"] .packet.flag{background:var(--ok);color:var(--on-ok)}
-@media(max-width:520px){.stage{padding-left:80px}.packet{width:72px;font-size:13px}}
-@media(prefers-reduced-motion:reduce){.packet,.layer,.mem i,.chips span{transition:none}}
-
-
-/* rail: the line that connects the sections */
-.rail{position:relative;padding-left:64px}
-.rail .node{position:relative}
-.pin{position:absolute;left:-64px;top:2px;width:32px;height:32px;border-radius:50%;border:2px solid var(--line);background:var(--bg);color:var(--muted);display:flex;align-items:center;justify-content:center;font:500 14px var(--code);z-index:2;transition:background .3s,border-color .3s,color .3s}
-.pin.on{background:var(--ok);border-color:var(--ok);color:var(--on-ok);animation:ping .7s ease-out 1}
-.pin.end{width:14px;height:14px;left:-55px;top:12px}
-.pin.end.on{animation:none}
-@keyframes ping{from{box-shadow:0 0 0 0 var(--ok)}to{box-shadow:0 0 0 14px transparent}}
-.track{position:absolute;left:14.5px;top:0;width:3px;height:0;background:var(--line);border-radius:2px;z-index:1}
-.track .fill{position:absolute;left:0;top:0;width:100%;height:0;background:var(--ok);border-radius:2px}
-.track .dot{position:absolute;left:50%;top:0;width:11px;height:11px;margin:-5px 0 0 -5.5px;border-radius:50%;background:var(--ok);box-shadow:0 0 12px 2px var(--ok);opacity:0}
-.track .dot.show{opacity:1}
-.tag{display:inline-block;vertical-align:middle;margin-left:10px;padding:3px 10px;border:2px solid var(--ok);border-radius:999px;color:var(--ok);font:500 13px var(--code);letter-spacing:.02em}
-.sub{color:var(--muted);font-size:16px}
-@media(max-width:620px){
-  .rail{padding-left:40px}
-  .pin{left:-40px;width:26px;height:26px;font-size:12px;top:4px}
-  .pin.end{width:12px;height:12px;left:-33px;top:12px}
-  .track{left:11.5px}
-  .tag{margin-left:0;margin-top:6px}
+@media(min-width:760px){
+  .under{grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);align-items:end;gap:28px}
 }
-@media(prefers-reduced-motion:reduce){.pin{transition:none}.pin.on{animation:none}}
+@media(max-width:759px){
+  .l2{display:none}
+  .by,.nvd,.story .count{display:none}
+  .intro{gap:8px}
+  .pipe{grid-template-columns:minmax(0,1fr);padding:0 0 0 72px;gap:14px;align-content:start}
+  .node{min-height:0;padding:8px 12px;gap:6px}
+  .node::before{left:-40px;top:50%;width:40px;height:3px;margin:-1.5px 0 0}
+  .nhead{flex-direction:row;justify-content:space-between;align-items:baseline;gap:8px}
+  .nname{font-size:16px}
+  .nnote{min-height:19px;font-size:13px;text-align:right}
+  .nnote.alert{font-size:12px}
+  .mem i{height:12px}
+  .btn{width:40px;height:40px}
+  .btns{gap:6px}
+  .story p{min-height:3.9em}
+}
 
-/* sections */
-section.block{padding:8px 0 56px}
-section.block h2{padding-top:2px;font:800 clamp(26px,4vw,38px)/1.1 var(--display);letter-spacing:-.015em;margin:0 0 14px;max-width:22ch}
-section.block>p{max-width:62ch;margin:0 0 18px}
-.checker{background:var(--panel);border:2px solid var(--line);border-radius:14px;padding:22px;display:grid;gap:18px;grid-template-columns:1fr}
-@media(min-width:820px){.checker{grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start}}
+/* panels: check, fix, timeline, sources */
+.checker{display:grid;gap:16px;grid-template-columns:minmax(0,1fr);max-width:860px}
+@media(min-width:760px){.checker{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
 .checker label{font-weight:600;display:block;margin-bottom:8px}
-.checker input{font:500 20px var(--code);width:100%;max-width:280px;padding:12px 14px;border-radius:10px;border:2px solid var(--ink);background:var(--bg);color:var(--ink)}
-.checker .hint{font-size:14px;color:var(--muted);margin:8px 0 0}
-.verdict{border-radius:12px;padding:14px 16px;border:2px solid var(--line);min-height:110px;font-weight:500}
+.checker input{font:500 22px var(--code);width:100%;max-width:300px;padding:12px 14px;border-radius:12px;border:2px solid var(--ink);background:var(--panel);color:var(--ink)}
+.fx{list-style:none;margin:14px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:8px}
+.fx li{border:2px solid var(--line);border-radius:10px;background:var(--panel);padding:6px 10px;font-size:14px}
+.fx b{font:500 14px var(--code);color:var(--ok);margin-left:4px}
+.verdict{border-radius:14px;padding:16px 18px;border:2px solid var(--line);min-height:120px;transition:border-color .3s,background .3s}
 .verdict.hot{border-color:var(--hot);background:var(--hot-bg)}
 .verdict.ok{border-color:var(--ok);background:var(--ok-bg)}
-.verdict strong{display:block;font:700 19px var(--display);margin-bottom:4px}
-table.fixed{border-collapse:collapse;margin:16px 0 0;width:100%;max-width:420px;font-size:15px}
-table.fixed th,table.fixed td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line)}
-table.fixed th{font-weight:600;color:var(--muted)}
-.caveat{font-size:14.5px;color:var(--muted);max-width:62ch;margin:14px 0 0}
+.verdict strong{display:block;font:700 20px var(--display);margin-bottom:4px}
+.traps{margin:16px 0 0;padding:0;list-style:none;display:grid;gap:8px;max-width:860px;color:var(--muted);font-size:14.5px}
+.traps li{padding-left:18px;position:relative}
+.traps li::before{content:"";position:absolute;left:0;top:.6em;width:8px;height:8px;border-radius:50%;background:var(--hot)}
 
-ol.do{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:minmax(0,1fr);gap:14px;max-width:760px;counter-reset:s}
-ol.do li{counter-increment:s;display:grid;grid-template-columns:44px minmax(0,1fr);gap:14px;align-items:start}
-ol.do li::before{content:counter(s);width:44px;height:44px;border-radius:50%;background:var(--ok);color:var(--on-ok);display:flex;align-items:center;justify-content:center;font:700 17px var(--display)}
-ol.do h3{font:700 19px/1.25 var(--display);margin:2px 0 4px}
-ol.do p{margin:0;color:var(--muted)}
-ol.do code{overflow-wrap:anywhere;background:var(--panel);border:1px solid var(--line);padding:1px 6px;border-radius:6px;color:var(--ink)}
+.fix{list-style:none;margin:0;padding:0;display:grid;gap:12px;max-width:860px;counter-reset:s}
+.fix li{counter-increment:s;display:grid;grid-template-columns:44px minmax(0,1fr);gap:14px;align-items:start;background:var(--panel);border:2px solid var(--line);border-radius:14px;padding:14px 16px}
+.fix li::before{content:counter(s);width:44px;height:44px;border-radius:50%;background:var(--ok);color:var(--on-ok);display:grid;place-items:center;font:700 18px var(--display)}
+.fix h3{font:700 19px/1.2 var(--display);margin:2px 0 4px}
+.fix p{margin:0;color:var(--muted);font-size:15px}
+.fix code{overflow-wrap:anywhere}
+.note{margin:14px 0 0;max-width:860px;border-left:4px solid var(--hot);padding:4px 0 4px 14px;color:var(--muted);font-size:15px}
+.fix li,.tl li{opacity:0}
+.panel.in .fix li{animation:rise .45s var(--ease) forwards;animation-delay:calc(var(--i)*90ms)}
+.panel.in .tl li{animation:rise .45s var(--ease) forwards;animation-delay:calc(var(--i)*70ms)}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 
-.timeline{list-style:none;margin:0;padding:0 0 0 22px;border-left:3px solid var(--ok);display:grid;gap:22px;max-width:760px}
-.timeline li{position:relative}
-.timeline li::before{content:"";position:absolute;left:-31px;top:8px;width:13px;height:13px;border-radius:50%;background:var(--bg);border:3px solid var(--ok)}
-.timeline time{font:500 15px var(--code);color:var(--ok)}
-.timeline p{margin:2px 0 0;color:var(--muted)}
+.tl{list-style:none;margin:0;padding:0 0 0 22px;position:relative;display:grid;gap:14px;max-width:820px}
+.tl::before{content:"";position:absolute;left:0;top:6px;bottom:6px;width:3px;background:var(--ok);border-radius:2px;transform-origin:top;transform:scaleY(0)}
+.panel.in .tl::before{animation:grow 1s var(--ease) forwards}
+@keyframes grow{to{transform:scaleY(1)}}
+.tl li{position:relative}
+.tl li::before{content:"";position:absolute;left:-27px;top:7px;width:13px;height:13px;border-radius:50%;background:var(--bg);border:3px solid var(--ok)}
+.tl time{font:500 13.5px var(--code);color:var(--ok)}
+.tl p{margin:1px 0 0;color:var(--muted);font-size:15px}
+.check-real{margin:18px 0 0;max-width:820px;background:var(--panel);border:2px solid var(--line);border-radius:14px;padding:14px 16px;font-size:14.5px;color:var(--muted)}
+.check-real b{color:var(--ink)}
 
-.sources ul{margin:0;padding-left:20px;max-width:760px}
-.sources li{margin:6px 0}
-footer{border-top:2px solid var(--line);padding:28px 0 56px;color:var(--muted);font-size:15px}
-footer p{margin:0 0 8px;max-width:66ch}
+.src{margin:0;padding-left:20px;max-width:820px;display:grid;gap:6px}
+.me{margin-top:18px;color:var(--muted);font-size:14.5px;max-width:66ch}
+
+/* tabs */
+.tabs{position:relative;display:flex;gap:2px;padding:4px;margin:0 auto 12px;border:2px solid var(--line);border-radius:999px;background:var(--panel);max-width:100%}
+.ind{position:absolute;top:4px;bottom:4px;left:0;width:0;border-radius:999px;background:var(--ok);transition:left .35s var(--ease),width .35s var(--ease)}
+.tab{position:relative;z-index:1;border:0;background:transparent;padding:10px 14px;border-radius:999px;font:600 14px var(--body);cursor:pointer;white-space:nowrap;min-height:40px;transition:color .25s}
+.tab[aria-selected="true"]{color:var(--on-ok)}
+.tab .long{display:none}
+@media(min-width:760px){.tab{padding:10px 20px;font-size:15px}.tab .long{display:inline}.tab .short{display:none}}
+@media(max-width:420px){.tab{padding:10px 9px;font-size:13px}}
+
+@media(prefers-reduced-motion:reduce){
+  .packet,.lfill,.node,.mem i,.ind{transition:none}
+  .live::before,.seg button.nudge{animation:none}
+  .panel.in,.story.swap h2,.story.swap p{animation:none}
+  .fix li,.tl li{opacity:1;animation:none!important}
+  .tl::before{transform:none;animation:none!important}
+  .pill.run::after{animation:none;width:100%}
+}
 </style>
 
 </head>
 <body>
-<header class="top wrap">
-  <div class="byline">By Yasser Chettour</div>
-  <h1>PHP2Shell, one request at a time</h1>
-  <p class="lede">Two critical PHP bugs, explained step by step. Scroll down and the line follows you from first request to final patch.</p>
-</header>
+<div class="app">
+  <header class="bar">
+    <div class="brand"><span class="logo">PHP<i>2</i>Shell</span><span class="by">by Yasser Chettour</span></div>
+    <div class="tools"><span class="live">exploited<i class="l2"> in the wild</i></span><button type="button" class="theme" id="theme" aria-label="Switch theme"></button></div>
+  </header>
 
-<main class="wrap rail" id="rail">
-  <div class="track" id="track" aria-hidden="true"><div class="fill" id="fill"></div><div class="dot" id="dot"></div></div>
+  <main class="panels">
+    <!-- 1. explain -->
+    <section class="panel" id="p-explain" role="tabpanel" aria-labelledby="t-explain">
+      <div class="explain">
+        <div class="intro">
+          <p class="def"><b>Two critical bugs in PHP itself.</b> One web request, no login, and commands run on your server.</p>
+          <div class="cves">
+            <a class="cve" href="https://nvd.nist.gov/vuln/detail/CVE-2026-109618"><code>CVE-2026-109618</code><span><i class="nvd">NVD </i>↗</span></a>
+            <a class="cve" href="https://nvd.nist.gov/vuln/detail/CVE-2026-109619"><code>CVE-2026-109619</code><span><i class="nvd">NVD </i>↗</span></a>
+          </div>
+        </div>
 
-  <section class="block node" id="what">
-    <span class="pin" aria-hidden="true">1</span>
-    <h2>What is PHP2Shell?</h2>
-    <p>PHP2Shell is the nickname for two critical bugs in PHP itself. An attacker can send a web request to an unpatched server and run commands on it, with no login.</p>
-    <p class="sub">CISA has listed both as exploited in the wild since October 26.</p>
-    <div class="cves">
-      <div class="cve">
-        <code>CVE-2026-109618</code>
-        <p>Memory corruption when PHP runs out of memory during a request.</p>
-        <p class="links"><a href="https://nvd.nist.gov/vuln/detail/CVE-2026-109618">NVD record</a><a href="https://github.com/php/php-src/security/advisories/GHSA-w8hw-w9fx-j79w">PHP advisory</a></p>
+        <div class="pipe" id="pipe" data-mode="vuln" data-step="0" data-flag="0">
+          <div class="line" id="line"></div><div class="lfill" id="lfill"></div>
+          <div class="node" data-n="net"><div class="nhead"><div class="nname">Internet</div><div class="nnote"></div></div></div>
+          <div class="node" data-n="web"><div class="nhead"><div class="nname">Web server</div><div class="nnote"></div></div></div>
+          <div class="node" data-n="php"><div class="nhead"><div class="nname">PHP engine</div><div class="nnote"></div></div><div class="mem" id="mem" aria-hidden="true"></div></div>
+          <div class="node" data-n="app"><div class="nhead"><div class="nname">Your site</div><div class="nnote"></div></div><div class="chips" aria-hidden="true"><span>Login</span><span>Validation</span><span>Plugins</span></div></div>
+          <div class="packet" id="packet">request</div>
+        </div>
+
+        <div class="under">
+          <div class="story" id="story" aria-live="polite">
+            <p class="count" id="count"></p>
+            <h2 id="ctitle"></h2>
+            <p id="ctext"></p>
+          </div>
+          <div class="ctrl">
+            <div class="pills" id="pills" role="group" aria-label="Steps"></div>
+            <div class="row">
+              <div class="seg" role="group" aria-label="Server state">
+                <button type="button" class="v" data-mode="vuln" aria-pressed="true">Unpatched</button>
+                <button type="button" class="p" data-mode="patched" aria-pressed="false" id="bpatched">Patched</button>
+              </div>
+              <div class="btns">
+                <button type="button" class="btn" id="prev" aria-label="Previous step"><svg viewBox="0 0 16 16"><path d="M10.5 2 4 8l6.5 6z"/></svg></button>
+                <button type="button" class="btn main" id="play" aria-label="Pause"><svg viewBox="0 0 16 16" id="ico"></svg></button>
+                <button type="button" class="btn" id="next" aria-label="Next step"><svg viewBox="0 0 16 16"><path d="M5.5 2 12 8l-6.5 6z"/></svg></button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="cve">
-        <code>CVE-2026-109619</code>
-        <p>A use-after-free: leftover memory from one request is reused by the next.</p>
-        <p class="links"><a href="https://nvd.nist.gov/vuln/detail/CVE-2026-109619">NVD record</a><a href="https://github.com/php/php-src/security/advisories/GHSA-6wmf-4rv5-p3rp">PHP advisory</a></p>
+    </section>
+
+    <!-- 2. check -->
+    <section class="panel" id="p-check" role="tabpanel" aria-labelledby="t-check" hidden>
+      <h1>Is your PHP version fixed?</h1>
+      <p class="lead">Type the version from <code>php -v</code>. The check runs in your browser and sends nothing anywhere.</p>
+      <div class="checker">
+        <div>
+          <label for="ver">Your PHP version</label>
+          <input id="ver" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="8.3.35" aria-describedby="verdict">
+          <ul class="fx" aria-label="First fixed version per branch">
+            <li>8.5 <b>8.5.12</b></li><li>8.4 <b>8.4.27</b></li><li>8.3 <b>8.3.36</b></li><li>8.2 <b>8.2.35</b></li>
+          </ul>
+        </div>
+        <div class="verdict" id="verdict" role="status"><strong>Waiting for a version</strong>Try 8.4.26 or 8.4.27.</div>
       </div>
-    </div>
-  </section>
+      <ul class="traps">
+        <li>Linux distributions often fix PHP without changing the version number. Ubuntu 24.04 still reports 8.3.6 after its fix, so check your distribution's advisory.</li>
+        <li>The fix only counts after PHP is fully restarted. Many servers run several copies of PHP, and <code>php -v</code> shows only the command-line one.</li>
+        <li>A fixed version does not cover CVE-2026-115560. Keep <code>session.upload_progress.enabled</code> off.</li>
+      </ul>
+    </section>
 
+    <!-- 3. fix -->
+    <section class="panel" id="p-fix" role="tabpanel" aria-labelledby="t-fix" hidden>
+      <h1>What to do about it</h1>
+      <p class="lead">Three moves, in this order.</p>
+      <ol class="fix">
+        <li style="--i:0"><div><h3>Update PHP</h3><p>Move to 8.5.12, 8.4.27, 8.3.36 or 8.2.35, or install your distribution's patched package. PHP 8.1 and older get no official release: use a vendor backport or upgrade.</p></div></li>
+        <li style="--i:1"><div><h3>Restart it fully</h3><p>Restart PHP-FPM and the web server, then check every copy: hosting panels, containers and appliances often ship their own PHP.</p></div></li>
+        <li style="--i:2"><div><h3>Close the second door</h3><p>Attackers chained PHP2Shell with a Linux kernel bug to get root. Patch the kernel, and take management interfaces off the public internet.</p></div></li>
+      </ol>
+      <p class="note">Also look back: the first attempt hit Amazon's honeypots on October 17, four days before the patch. Check logs and web folders from that date.</p>
+    </section>
 
-  <section class="block node" id="see">
-    <span class="pin" aria-hidden="true">2</span>
-    <h2>Follow one request <span class="tag">interactive</span></h2>
-    <p>Switch between an unpatched and a patched server, then step through what happens to the same request.</p>
-  <div class="explorer" id="explorer">
-    <div class="controls">
-      <div class="seg" role="group" aria-label="Server state">
-        <button type="button" class="v" data-mode="vuln" aria-pressed="true">Unpatched PHP</button>
-        <button type="button" class="p" data-mode="patched" aria-pressed="false">Patched PHP</button>
-      </div>
-      <div class="steps" role="group" aria-label="Steps" id="steps"></div>
-      <div class="nav">
-        <button type="button" id="prev">Previous</button>
-        <button type="button" id="next" class="next">Next step</button>
-      </div>
-    </div>
+    <!-- 4. timeline -->
+    <section class="panel" id="p-timeline" role="tabpanel" aria-labelledby="t-timeline" hidden>
+      <h1>How it unfolded</h1>
+      <ol class="tl">
+        <li style="--i:0"><time>October 17</time><p>Amazon's honeypots see the first attempt, four days before the fix.</p></li>
+        <li style="--i:1"><time>October 20</time><p>Details leak early. PHP posts an advance notice of an emergency release.</p></li>
+        <li style="--i:2"><time>October 21</time><p>Fixes ship for 8.5, 8.4, 8.3 and 8.2. F5 Labs records thousands of attempts within hours.</p></li>
+        <li style="--i:3"><time>October 23</time><p>PHP flags a third issue (CVE-2026-115560) that the update does not fix. Keep session upload progress off.</p></li>
+        <li style="--i:4"><time>October 23 to 24</time><p>Dream reports 24 Palo Alto firewalls rooted by chaining PHP2Shell with a Linux kernel bug, Fragnesia (CVE-2026-46300). Unit 42 verified the tooling.</p></li>
+        <li style="--i:5"><time>October 26</time><p>CISA adds both CVEs to its Known Exploited Vulnerabilities catalog.</p></li>
+        <li style="--i:6"><time>November 3</time><p>Singapore's CSA warns about attacks on management interfaces, naming Palo Alto, Cisco, Citrix, F5 and Siemens.</p></li>
+        <li style="--i:7"><time>November 12</time><p>Check Point reports a chain against its gateways, in attacks between October 30 and November 4.</p></li>
+      </ol>
+      <p class="check-real"><b>Reality check.</b> Most traffic is still scanning and failed attempts. Wiz found a working attack must be tuned to each PHP build, and Fastly found other campaigns counted under PHP2Shell signatures. The confirmed break-ins are real, though. Scale: about 2.6 million internet-facing PHP services, roughly 73.5% on PHP 8.1 or older (Mallory). Exposed vulnerable machines fell about 67% in the first week (Wiz). Checked November 13, 2026.</p>
+    </section>
 
-    <div class="caption" aria-live="polite" id="caption">
-      <p class="count" id="count"></p>
-      <h2 id="ctitle"></h2>
-      <p id="ctext"></p>
-      <p class="stage-note">Simplified illustration of the concept. It is not exploit code and shows no attack details.</p>
-    </div>
+    <!-- 5. sources -->
+    <section class="panel" id="p-sources" role="tabpanel" aria-labelledby="t-sources" hidden>
+      <h1>Sources</h1>
+      <ul class="src">
+        <li><a href="https://github.com/php/php-src/security/advisories/GHSA-w8hw-w9fx-j79w">PHP advisory for CVE-2026-109618</a> and <a href="https://github.com/php/php-src/security/advisories/GHSA-6wmf-4rv5-p3rp">for CVE-2026-109619</a></li>
+        <li><a href="https://www.php.net/archive/2026.php#2026-10-21-5">PHP security announcement, October 21, 2026</a></li>
+        <li><a href="https://pentest-tools.com/research/php2shell-rce">Pentest-Tools: what it is, how to detect, how to patch</a></li>
+        <li><a href="https://f5.com/labs/articles/php2shell-exploitation-attempts-observed">F5 Labs: exploitation attempts observed</a></li>
+        <li><a href="https://socradar.io/blog/php2shell-exploit-tooling-attacker-server/">SOCRadar: exploit tooling on an exposed attacker server</a></li>
+        <li><a href="https://itproexpert.com/critical-php2shell-vulnerability-alert-majority-online-servers-and-services-affected-cve-2026-109618-109619/">IT Pro Expert: alert and patch tracker</a></li>
+        <li><a href="https://www.wiz.io/blog/php2shell-exploitation-so-far">Wiz Research: exploitation attempts and remediation trends</a></li>
+        <li><a href="https://threatdefence.com/article/php2shell-php-remote-code-execution-advisory">ThreatDefence: detection, hunting and patching</a></li>
+        <li><a href="https://www.theregister.com/a/5306456">The Register: suspected Chinese attackers rooted 25 servers</a></li>
+        <li><a href="https://www.csa.gov.sg/alerts-and-advisories/alerts/al-2026-157/">Cyber Security Agency of Singapore: active exploitation of network and security products</a></li>
+        <li><a href="https://bleepingcomputer.com/news/security/cisa-confirms-php2shell-vulnerabilities-now-exploited-in-attacks">BleepingComputer: CISA confirms PHP2Shell is exploited</a></li>
+      </ul>
+      <p class="me">Made by Yasser Chettour. Network defense, SOC work and forensics, Marrakech. <a href="https://github.com/yasser-ch">GitHub</a> · <a href="https://yasser-ch.github.io">Portfolio</a></p>
+    </section>
+  </main>
 
-    <div class="stage" id="stage" data-mode="vuln" data-step="0">
-      <div class="packet" id="packet">request</div>
-
-      <div class="layer" data-layer="net">
-        <div class="lname">The internet</div>
-        <div class="lnote" data-note></div>
-      </div>
-
-      <div class="layer" data-layer="web">
-        <div class="lname">Web server (Apache, Nginx)</div>
-        <div class="lnote" data-note></div>
-      </div>
-
-      <div class="layer" data-layer="php">
-        <div class="lname">PHP engine</div>
-        <div class="lnote" data-note></div>
-        <div class="mem" id="mem" aria-label="Memory PHP uses for one request, simplified"></div>
-      </div>
-
-      <div class="layer" data-layer="app">
-        <div class="lname">Your site (WordPress, Laravel, plugins)</div>
-        <div class="lnote" data-note></div>
-        <div class="chips"><span>Login check</span><span>Input validation</span><span>Plugin rules</span></div>
-      </div>
-    </div>
-  </div>
-
-  </section>
-
-  <section class="block node" id="check">
-    <span class="pin" aria-hidden="true">3</span>
-    <h2>Is your PHP version fixed?</h2>
-    <p>Type the version from <code>php -v</code>. The check runs in your browser and sends nothing anywhere.</p>
-    <div class="checker">
-      <div>
-        <label for="ver">Your PHP version</label>
-        <input id="ver" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="8.3.35" aria-describedby="verdict">
-        <p class="hint">Fixed releases per branch:</p>
-        <table class="fixed">
-          <thead><tr><th>Branch</th><th>First fixed version</th></tr></thead>
-          <tbody>
-            <tr><td>PHP 8.5</td><td class="mono">8.5.12</td></tr>
-            <tr><td>PHP 8.4</td><td class="mono">8.4.27</td></tr>
-            <tr><td>PHP 8.3</td><td class="mono">8.3.36</td></tr>
-            <tr><td>PHP 8.2</td><td class="mono">8.2.35</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <div class="verdict" id="verdict" role="status"><strong>Waiting for a version</strong>Try 8.4.26 or 8.4.27.</div>
-    </div>
-    <p class="caveat">Two traps. Linux distributions often fix PHP without changing the version number (Ubuntu 24.04 still reports 8.3.6 after its fix), so check your distribution's advisory. And the new version only counts once PHP has been fully restarted. Many servers also run several copies of PHP, and <code>php -v</code> shows only the command-line one. A fixed version also does not cover CVE-2026-115560, so keep session upload progress off.</p>
-  </section>
-
-  <section class="block node" id="do">
-    <span class="pin" aria-hidden="true">4</span>
-    <h2>What to do about it</h2>
-    <ol class="do">
-      <li><div><h3>Find every copy of PHP</h3><p>Check <code>php -v</code> and <code>php-fpm -v</code>, then look for copies installed by a hosting panel, a container or a vendor appliance. Firewalls, VPN gateways and NAS boxes often run PHP in their management page, and you cannot patch that PHP yourself, so check each vendor's advisory.</p></div></li>
-      <li><div><h3>Update to the fixed release</h3><p>Move to 8.5.12, 8.4.27, 8.3.36 or 8.2.35, or install your distribution's patched package. PHP 8.1 and older get no official release, so use a vendor backport or upgrade.</p></div></li>
-      <li><div><h3>Restart PHP fully</h3><p>Restart PHP-FPM and the web server so the new version actually loads. Confirm which version the web server runs, not just the command line.</p></div></li>
-      <li><div><h3>Look back to October 17</h3><p>The first attempt on Amazon's honeypots was four days before the patch, so check logs and web folders from that date. Turning off <code>session.upload_progress.enabled</code> reduces exposure to one of the two bugs, but patching is the only real fix.</p></div></li>
-      <li><div><h3>Close the second door</h3><p>The firewall attacks paired PHP2Shell with a Linux kernel bug to turn web-user access into root, so patch the kernel too. Also take management interfaces off the public internet, since that is where attackers have been getting in.</p></div></li>
-    </ol>
-  </section>
-
-  <section class="block node" id="when">
-    <span class="pin" aria-hidden="true">5</span>
-    <h2>How it unfolded</h2>
-    <ol class="timeline">
-      <li><time datetime="2026-10-17">October 17</time><p>Amazon sees the first exploit attempt against its honeypots, four days before the fix.</p></li>
-      <li><time datetime="2026-10-20">October 20</time><p>Details leak on Hacker News two days early. The PHP team posts an advance notice of an emergency release.</p></li>
-      <li><time datetime="2026-10-21">October 21</time><p>PHP ships fixes for 8.5, 8.4, 8.3 and 8.2. F5 Labs records thousands of exploit attempts within hours.</p></li>
-      <li><time datetime="2026-10-23">October 23</time><p>PHP flags a third, separate issue (CVE-2026-115560) that the October 21 releases do not fix. Its advice is to keep session upload progress switched off.</p></li>
-      <li><time datetime="2026-10-24">October 23 to 24</time><p>Security firm Dream reports that attackers chained PHP2Shell with a Linux kernel bug called Fragnesia (CVE-2026-46300) to get root on 24 Palo Alto Networks firewalls through their management interface. Palo Alto's Unit 42 verified the tooling.</p></li>
-      <li><time datetime="2026-10-26">October 26</time><p>CISA adds both PHP2Shell CVEs to its Known Exploited Vulnerabilities catalog.</p></li>
-      <li><time datetime="2026-11-03">November 3</time><p>Singapore's Cyber Security Agency warns that attackers are hitting the management interfaces of network and security products, and names Palo Alto, Cisco, Citrix, F5 and Siemens among the affected vendors.</p></li>
-      <li><time datetime="2026-11-12">November 12</time><p>Check Point reports that attackers chained PHP2Shell with a second bug to get root on its gateways, in attacks between October 30 and November 4.</p></li>
-    </ol>
-    <p class="caveat">Reality check: most traffic is still scanning and failed attempts. Wiz found that a working attack has to be tuned to each server's PHP build and memory layout, and Fastly found that other campaigns were being counted under PHP2Shell signatures. The confirmed break-ins are real, though, and they cluster on setups that were easy to reach. Scale: Mallory counted about 2.6 million internet-facing services showing a PHP version, and roughly 73.5% ran PHP 8.1 or older. Wiz measured about 67% fewer exposed vulnerable machines in the first week. Figures last checked on November 13, 2026.</p>
-  </section>
-
-  <section class="block node sources" id="sources">
-    <span class="pin end" aria-hidden="true"></span>
-    <h2>Sources</h2>
-    <ul>
-      <li><a href="https://pentest-tools.com/research/php2shell-rce">Pentest-Tools: PHP2Shell, what it is, how to detect, how to patch</a></li>
-      <li><a href="https://f5.com/labs/articles/php2shell-exploitation-attempts-observed">F5 Labs: PHP2Shell exploitation attempts observed</a></li>
-      <li><a href="https://socradar.io/blog/php2shell-exploit-tooling-attacker-server/">SOCRadar: PHP2Shell exploit tooling found on an exposed attacker server</a></li>
-      <li><a href="https://itproexpert.com/critical-php2shell-vulnerability-alert-majority-online-servers-and-services-affected-cve-2026-109618-109619/">IT Pro Expert: PHP2Shell alert and patch tracker</a></li>
-      <li><a href="https://www.wiz.io/blog/php2shell-exploitation-so-far">Wiz Research: exploitation attempts and remediation trends</a></li>
-      <li><a href="https://threatdefence.com/article/php2shell-php-remote-code-execution-advisory">ThreatDefence: PHP2Shell detection, hunting and patching (updated November 10)</a></li>
-      <li><a href="https://www.theregister.com/a/5306456">The Register: suspected Chinese attackers rooted 25 servers</a></li>
-      <li><a href="https://www.csa.gov.sg/alerts-and-advisories/alerts/al-2026-157/">Cyber Security Agency of Singapore: active exploitation affecting network and security products</a></li>
-      <li><a href="https://bleepingcomputer.com/news/security/cisa-confirms-php2shell-vulnerabilities-now-exploited-in-attacks">BleepingComputer: CISA confirms PHP2Shell is exploited</a></li>
-      <li><a href="https://www.php.net/archive/2026.php#2026-10-21-5">PHP security announcement, October 21, 2026</a></li>
-      <li><a href="https://github.com/php/php-src/security/advisories/GHSA-w8hw-w9fx-j79w">GitHub advisory for CVE-2026-109618</a> and <a href="https://github.com/php/php-src/security/advisories/GHSA-6wmf-4rv5-p3rp">for CVE-2026-109619</a></li>
-    </ul>
-  </section>
-</main>
-
-<footer>
-  <div class="wrap">
-    <p>Made by Yasser Chettour. Network defense, SOC work and forensics, Marrakech.</p>
-    <p><a href="https://github.com/yasser-ch">GitHub</a> &nbsp; <a href="https://yasser-ch.github.io">Portfolio</a></p>
-  </div>
-</footer>
+  <nav class="tabs" id="tabs" role="tablist" aria-label="Sections">
+    <span class="ind" id="ind" aria-hidden="true"></span>
+    <button class="tab" role="tab" id="t-explain" data-p="explain" aria-selected="true"><span class="long">Understand</span><span class="short">Explain</span></button>
+    <button class="tab" role="tab" id="t-check" data-p="check" aria-selected="false" tabindex="-1"><span class="long">Is my PHP fixed?</span><span class="short">My PHP</span></button>
+    <button class="tab" role="tab" id="t-fix" data-p="fix" aria-selected="false" tabindex="-1"><span class="long">What to do</span><span class="short">Fix it</span></button>
+    <button class="tab" role="tab" id="t-timeline" data-p="timeline" aria-selected="false" tabindex="-1"><span class="long">Timeline</span><span class="short">Timeline</span></button>
+    <button class="tab" role="tab" id="t-sources" data-p="sources" aria-selected="false" tabindex="-1"><span class="long">Sources</span><span class="short">Sources</span></button>
+  </nav>
+</div>
 
 <script>
 (function(){
+  var $ = function(s, r){ return (r || document).querySelector(s); };
+  var $$ = function(s, r){ return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+  var reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var DUR = 3400;
+
+  var IDLE = { net:"anyone, anywhere", web:"Apache, Nginx", php:"runs your code", app:"WordPress, Laravel" };
   var STEPS = [
-    { t:"A request arrives",
-      v:{ text:"Someone on the internet sends a request to any PHP page of your site. No login, no password, nothing for you to click. Researchers confirmed routes through form-upload style requests (multipart).",
-          net:"Sends a request", web:"", php:"", app:"" },
-      p:{ text:"The same request arrives at a server running a fixed PHP release. From the outside, nothing looks different yet.",
-          net:"Sends a request", web:"", php:"", app:"" } },
-    { t:"The web server hands it to PHP",
-      v:{ text:"Apache or Nginx passes the request to the PHP engine. PHP starts reading and preparing it before your own code runs. The two bugs live here, in PHP itself, not in your site.",
-          net:"", web:"Passes it to PHP", php:"Starts reading the request", app:"Waiting" },
-      p:{ text:"The web server passes it to PHP, which starts reading the request before your own code runs. This is the same stage, now running fixed code.",
-          net:"", web:"Passes it to PHP", php:"Starts reading the request", app:"Waiting" } },
-    { t:"PHP hits a failure path",
-      v:{ text:"A request can push PHP into an error path, such as running out of memory, or make it reuse leftover state from an earlier request. PHP's cleanup then trusts memory that is already broken.",
-          net:"", web:"", php:"Memory left in a broken state", app:"Waiting" },
-      p:{ text:"The request hits the fixed code. PHP handles the failure safely and only cleans up memory that is valid. The fixed releases also add a hard memory limit for requests.",
-          net:"", web:"", php:"Failure handled safely", app:"Waiting" } },
-    { t:"The attacker steers the memory",
-      v:{ text:"With memory in that state, a skilled attacker can influence what PHP does next. The result is remote code execution: commands run on your server as the PHP user. Both flaws are rated 9.2 (CVSS v4.0).",
-          net:"", web:"", php:"Attacker's commands run here", app:"Waiting" },
-      p:{ text:"The request is stopped at this point. Nothing the attacker sent is ever treated as code.",
-          net:"", web:"", php:"Request stopped", app:"Waiting" } },
-    { t:"Your own code never got a say",
-      v:{ text:"Your login check, input validation and plugins sit behind this layer. On Apache with mod_php, PHP confirmed the attack works before any application code runs, so those checks never get to reject it. This is why updating WordPress or a plugin does not fix PHP2Shell.",
-          net:"", web:"", php:"Server taken over", app:"Skipped: never asked" },
-      p:{ text:"The request ends safely and the site carries on. Your own checks work as usual, and the fix came from updating PHP, not from changing your site.",
-          net:"", web:"", php:"Safe", app:"Working as normal" } }
+    { tv:"A request arrives", tp:"A request arrives",
+      xv:"Anyone on the internet can send it. No login. Nothing to click.",
+      xp:"The same request, now sent to a server running fixed PHP.",
+      nv:{ net:"sending request" }, np:{ net:"sending request" } },
+    { tv:"Handed to PHP", tp:"Handed to PHP",
+      xv:"PHP reads it before your own code runs. The bugs live here, in PHP itself.",
+      xp:"Same stage, but PHP is now running the fixed code.",
+      nv:{ web:"passes it on", php:"reading the request" }, np:{ web:"passes it on", php:"reading the request" } },
+    { tv:"PHP's memory breaks", tp:"PHP handles it",
+      xv:"A failure path leaves memory in a state PHP still trusts.",
+      xp:"Cleanup only touches valid memory. The fix also adds a hard memory limit.",
+      nv:{ php:"memory corrupted" }, np:{ php:"failure handled" } },
+    { tv:"Commands run", tp:"Request stopped",
+      xv:"Remote code execution as the PHP user. Both bugs score 9.2 out of 10.",
+      xp:"Nothing the attacker sent is ever treated as code.",
+      nv:{ php:"> commands run here" }, np:{ php:"stopped" } },
+    { tv:"Your site never got a say", tp:"The site carries on",
+      xv:"Login checks and plugins sit behind PHP and never get to reject it. Updating WordPress won't fix this.",
+      xp:"Your own checks work as usual. The fix came from updating PHP.",
+      nv:{ php:"server taken over", app:"never asked" }, np:{ php:"safe", app:"working normally" } }
   ];
+  var WHERE = ["net","web","php","php","php"];
+  var HOT = { 2:[5,6,7,14], 3:[4,5,6,7,8,13,14,15,16,21], 4:[2,3,4,5,6,7,8,9,12,13,14,15,16,17,20,21,22] };
 
-  var stage = document.getElementById("stage");
-  var packet = document.getElementById("packet");
-  var memEl = document.getElementById("mem");
-  var stepsEl = document.getElementById("steps");
-  var prev = document.getElementById("prev");
-  var next = document.getElementById("next");
-  var ctitle = document.getElementById("ctitle");
-  var ctext = document.getElementById("ctext");
-  var count = document.getElementById("count");
-  var layers = {};
-  Array.prototype.forEach.call(stage.querySelectorAll(".layer"), function(l){ layers[l.dataset.layer] = l; });
+  var pipe = $("#pipe"), line = $("#line"), lfill = $("#lfill"), packet = $("#packet");
+  var nodes = {}; $$(".node", pipe).forEach(function(n){ nodes[n.dataset.n] = n; });
+  var order = ["net","web","php","app"];
+  var memEl = $("#mem"), cells = [];
+  for (var i = 0; i < 24; i++){ var c = document.createElement("i"); c.style.transitionDelay = (i * 18) + "ms"; memEl.appendChild(c); cells.push(c); }
+  var story = $("#story"), ctitle = $("#ctitle"), ctext = $("#ctext"), count = $("#count");
+  var pillsEl = $("#pills"), prev = $("#prev"), next = $("#next"), play = $("#play"), ico = $("#ico");
+  var bpatched = $("#bpatched");
 
-  var cells = [];
-  for (var i = 0; i < 24; i++){ var c = document.createElement("i"); memEl.appendChild(c); cells.push(c); }
-  var HOT = { 2:[5,6,7,14], 3:[5,6,7,8,13,14,15,16], 4:[5,6,7,8,13,14,15,16] };
+  var root = document.documentElement, themeBtn = $("#theme");
+  function setTheme(t, save){
+    root.setAttribute("data-theme", t);
+    themeBtn.textContent = t === "dark" ? "\u2600" : "\u263E";
+    themeBtn.setAttribute("aria-label", t === "dark" ? "Switch to light theme" : "Switch to dark theme");
+    if (save){ try { localStorage.setItem("p2s-theme", t); } catch (e) {} }
+  }
+  var saved = null; try { saved = localStorage.getItem("p2s-theme"); } catch (e) {}
+  setTheme(saved || root.getAttribute("data-theme") || "light", false);
+  themeBtn.addEventListener("click", function(){ setTheme(root.getAttribute("data-theme") === "dark" ? "light" : "dark", true); });
 
-  var step = 0, mode = "vuln";
+  var step = 0, mode = "vuln", playing = !reduce, active = true, timer = null, nudged = false;
+  var PLAY = '<path d="M4 2l10 6-10 6z"/>', PAUSE = '<path d="M3 2h4v12H3zM9 2h4v12H9z"/>';
 
-  STEPS.forEach(function(s, idx){
+  var pills = STEPS.map(function(s, idx){
     var b = document.createElement("button");
-    b.type = "button"; b.textContent = idx + 1;
-    b.setAttribute("aria-label", "Step " + (idx + 1) + ": " + s.t);
-    b.addEventListener("click", function(){ step = idx; render(); });
-    stepsEl.appendChild(b);
+    b.type = "button"; b.className = "pill";
+    b.setAttribute("aria-label", "Step " + (idx + 1));
+    b.addEventListener("click", function(){ manual(function(){ step = idx; }); });
+    pillsEl.appendChild(b); return b;
   });
 
-  var PACKET_LAYER = ["net","web","php","php","php"];
+  function wide(){ return window.matchMedia("(min-width:760px)").matches; }
 
-  function render(){
-    var s = STEPS[step], d = mode === "vuln" ? s.v : s.p;
-    stage.dataset.mode = mode; stage.dataset.step = step;
-    count.textContent = "Step " + (step + 1) + " of " + STEPS.length;
-    ctitle.textContent = (mode === "patched" && step === 2) ? "PHP handles the failure" :
-                         (mode === "patched" && step === 3) ? "The request is stopped" :
-                         (mode === "patched" && step === 4) ? "The site carries on" : s.t;
-    ctext.textContent = d.text;
-
-    Array.prototype.forEach.call(stepsEl.children, function(b, i){
-      if (i === step) b.setAttribute("aria-current","step"); else b.removeAttribute("aria-current");
-    });
-    prev.disabled = step === 0;
-    next.disabled = step === STEPS.length - 1;
-    Array.prototype.forEach.call(document.querySelectorAll(".seg button"), function(b){
-      b.setAttribute("aria-pressed", b.dataset.mode === mode ? "true" : "false");
-    });
-
-    var where = PACKET_LAYER[step];
+  function layout(){
+    if (!pipe.offsetWidth) return;
+    var w = wide(), LANE_X = 36, LANE_Y = nodes.net.offsetTop - 34;
+    var cs = order.map(function(k){ var n = nodes[k]; return w ? n.offsetLeft + n.offsetWidth / 2 : n.offsetTop + n.offsetHeight / 2; });
+    var m = STEPS[step], where = WHERE[step];
     if (mode === "patched" && step === 4) where = "app";
-    Object.keys(layers).forEach(function(k){
-      var L = layers[k];
-      L.classList.remove("active","bad","good","skipped");
-      L.querySelector("[data-note]").textContent = d[k] || "";
-    });
-    layers[where].classList.add("active");
-    if (mode === "vuln"){
-      if (step >= 2) layers.php.classList.add("bad");
-      if (step === 4){ layers.app.classList.add("skipped","bad"); }
+    var c = cs[order.indexOf(where)], pw = packet.offsetWidth, ph = packet.offsetHeight;
+    if (w){
+      line.style.cssText = "left:" + cs[0] + "px;top:" + (LANE_Y - 1.5) + "px;width:" + (cs[3] - cs[0]) + "px;height:3px";
+      lfill.style.left = cs[0] + "px"; lfill.style.top = (LANE_Y - 1.5) + "px"; lfill.style.height = "3px"; lfill.style.width = (c - cs[0]) + "px";
+      packet.style.transform = "translate(" + Math.round(c - pw / 2) + "px," + Math.round(LANE_Y - ph / 2) + "px)";
     } else {
-      if (step >= 2) layers.php.classList.add("good");
-      if (step === 4) layers.app.classList.add("good");
+      line.style.cssText = "left:" + (LANE_X - 1.5) + "px;top:" + cs[0] + "px;width:3px;height:" + (cs[3] - cs[0]) + "px";
+      lfill.style.left = (LANE_X - 1.5) + "px"; lfill.style.top = cs[0] + "px"; lfill.style.width = "3px"; lfill.style.height = (c - cs[0]) + "px";
+      packet.style.transform = "translate(" + Math.round(LANE_X - pw / 2) + "px," + Math.round(c - ph / 2) + "px)";
     }
+  }
 
+  function render(swap){
+    var s = STEPS[step], m = mode === "vuln" ? "v" : "p";
+    pipe.dataset.mode = mode; pipe.dataset.step = step;
+    pipe.dataset.flag = step >= 2 ? (mode === "vuln" ? "1" : "2") : "0";
+    count.textContent = "Step " + (step + 1) + " of " + STEPS.length;
+    ctitle.textContent = s["t" + m]; ctext.textContent = s["x" + m];
+    if (swap){ story.classList.remove("swap"); void story.offsetWidth; story.classList.add("swap"); }
+
+    var notes = s["n" + m], where = WHERE[step];
+    if (mode === "patched" && step === 4) where = "app";
+    Object.keys(nodes).forEach(function(k){
+      var n = nodes[k], el = $(".nnote", n);
+      n.classList.remove("active","bad","good","skipped");
+      el.textContent = notes[k] || IDLE[k];
+      el.classList.toggle("alert", k === "php" && step >= 3);
+    });
+    nodes[where].classList.add("active");
+    if (mode === "vuln"){
+      if (step >= 2) nodes.php.classList.add("bad");
+      if (step === 4) nodes.app.classList.add("skipped","bad");
+    } else {
+      if (step >= 2) nodes.php.classList.add("good");
+      if (step === 4) nodes.app.classList.add("good");
+    }
     cells.forEach(function(c){ c.classList.remove("hot"); });
     if (mode === "vuln" && HOT[step]) HOT[step].forEach(function(i){ cells[i].classList.add("hot"); });
 
-    packet.classList.toggle("flag", step >= 2);
-    var L = layers[where];
-    var top = L.offsetTop + (L.offsetHeight / 2) - (packet.offsetHeight / 2);
-    packet.style.top = Math.round(top) + "px";
+    packet.textContent = mode === "vuln" ? (step >= 3 ? "shell" : "request") : (step === 3 ? "stopped" : step === 4 ? "safe" : "request");
+
+    pills.forEach(function(p, i){
+      p.classList.remove("run","done");
+      if (i < step || (i === step && !playing)) p.classList.add("done");
+      if (i === step && playing){ p.style.setProperty("--dur", DUR + "ms"); void p.offsetWidth; p.classList.add("run"); }
+      if (i === step) p.setAttribute("aria-current","step"); else p.removeAttribute("aria-current");
+    });
+    prev.disabled = step === 0; next.disabled = step === STEPS.length - 1;
+    $$(".seg button").forEach(function(b){ b.setAttribute("aria-pressed", b.dataset.mode === mode ? "true" : "false"); });
+    ico.innerHTML = playing ? PAUSE : PLAY;
+    play.setAttribute("aria-label", playing ? "Pause" : "Play");
+    layout();
   }
 
-  prev.addEventListener("click", function(){ if (step > 0){ step--; render(); } });
-  next.addEventListener("click", function(){ if (step < STEPS.length - 1){ step++; render(); } });
-  Array.prototype.forEach.call(document.querySelectorAll(".seg button"), function(b){
-    b.addEventListener("click", function(){ mode = b.dataset.mode; render(); });
+  function schedule(){
+    clearTimeout(timer);
+    if (!playing || !active) return;
+    timer = setTimeout(function(){
+      step = (step + 1) % STEPS.length;
+      if (step === 0 && mode === "vuln" && !nudged){
+        nudged = true; bpatched.classList.add("nudge");
+        setTimeout(function(){ bpatched.classList.remove("nudge"); }, 3200);
+      }
+      render(true); schedule();
+    }, DUR);
+  }
+  function manual(fn){ playing = false; fn(); render(true); schedule(); }
+
+  prev.addEventListener("click", function(){ if (step > 0) manual(function(){ step--; }); });
+  next.addEventListener("click", function(){ if (step < STEPS.length - 1) manual(function(){ step++; }); });
+  play.addEventListener("click", function(){
+    playing = !playing;
+    if (playing && step === STEPS.length - 1) step = 0;
+    render(true); schedule();
   });
-  document.getElementById("explorer").addEventListener("keydown", function(e){
+  $$(".seg button").forEach(function(b){
+    b.addEventListener("click", function(){
+      if (b.dataset.mode === mode) return;
+      mode = b.dataset.mode; step = 0; playing = !reduce; b.classList.remove("nudge");
+      render(true); schedule();
+    });
+  });
+  $("#p-explain").addEventListener("keydown", function(e){
     if (e.target.tagName === "INPUT") return;
-    if (e.key === "ArrowRight" && step < STEPS.length - 1){ step++; render(); }
-    if (e.key === "ArrowLeft" && step > 0){ step--; render(); }
+    if (e.key === "ArrowRight" && step < STEPS.length - 1) manual(function(){ step++; });
+    if (e.key === "ArrowLeft" && step > 0) manual(function(){ step--; });
   });
-  window.addEventListener("resize", render);
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(render);
-  render();
+
+  /* tabs */
+  var tabs = $$(".tab"), panels = $$(".panel"), ind = $("#ind");
+  function moveInd(){
+    var t = tabs.filter(function(x){ return x.getAttribute("aria-selected") === "true"; })[0];
+    if (t){ ind.style.left = t.offsetLeft + "px"; ind.style.width = t.offsetWidth + "px"; }
+  }
+  function select(id, fromUser){
+    if (!$("#p-" + id)) id = "explain";
+    tabs.forEach(function(t){ var on = t.dataset.p === id; t.setAttribute("aria-selected", on ? "true" : "false"); t.tabIndex = on ? 0 : -1; });
+    panels.forEach(function(p){ var on = p.id === "p-" + id; p.hidden = !on; p.classList.remove("in"); if (on){ p.scrollTop = 0; void p.offsetWidth; p.classList.add("in"); } });
+    active = id === "explain"; moveInd();
+    if (active){ layout(); }
+    schedule();
+    if (fromUser){ try { history.replaceState(null, "", "#" + id); } catch (e) {} }
+  }
+  tabs.forEach(function(t, i){
+    t.addEventListener("click", function(){ select(t.dataset.p, true); });
+    t.addEventListener("keydown", function(e){
+      var j = e.key === "ArrowRight" ? i + 1 : e.key === "ArrowLeft" ? i - 1 : -1;
+      if (j < 0 || j >= tabs.length) return;
+      e.preventDefault(); tabs[j].focus(); select(tabs[j].dataset.p, true);
+    });
+  });
+  window.addEventListener("hashchange", function(){ select((location.hash || "").slice(1) || "explain", false); });
 
   /* version checker */
   var FIXED = { 2:35, 3:36, 4:27, 5:12 };
-  var input = document.getElementById("ver");
-  var out = document.getElementById("verdict");
+  var input = $("#ver"), out = $("#verdict");
   function show(kind, head, body){
     out.className = "verdict" + (kind ? " " + kind : "");
     out.innerHTML = "<strong></strong><span></span>";
-    out.firstChild.textContent = head;
-    out.lastChild.textContent = body;
+    out.firstChild.textContent = head; out.lastChild.textContent = body;
   }
-  function check(){
+  input.addEventListener("input", function(){
     var m = /^\s*(\d+)\.(\d+)\.(\d+)/.exec(input.value);
     if (!m){ show("", "Waiting for a version", "Try 8.4.26 or 8.4.27."); return; }
     var maj = +m[1], min = +m[2], pat = +m[3], ver = maj + "." + min + "." + pat;
     if (maj < 8 || (maj === 8 && min <= 1)){
-      show("hot", ver + " is end of life",
-        "PHP published no official fixed release for this branch, only minimal source backports for 7.4, 8.0 and 8.1. Use a patched package from your distribution or vendor, or upgrade to a supported branch.");
+      show("hot", ver + " is end of life", "PHP published no official fixed release for this branch, only minimal source backports for 7.4, 8.0 and 8.1. Use a patched package from your distribution or vendor, or upgrade to a supported branch.");
       return;
     }
     if (maj === 8 && FIXED[min] !== undefined){
@@ -498,33 +552,15 @@ footer p{margin:0 0 8px;max-width:66ch}
       return;
     }
     show("", ver + " is not in the advisory list I checked", "Read the official PHP security announcement for this branch.");
-  }
-  input.addEventListener("input", check);
+  });
 
-  /* rail */
-  var rail = document.getElementById("rail");
-  var track = document.getElementById("track");
-  var fill = document.getElementById("fill");
-  var dot = document.getElementById("dot");
-  var pins = Array.prototype.slice.call(rail.querySelectorAll(".pin"));
-  var queued = false;
-  function center(p, top){ return p.getBoundingClientRect().top - top + p.offsetHeight / 2; }
-  function updateRail(){
-    queued = false;
-    var top = rail.getBoundingClientRect().top;
-    var c0 = center(pins[0], top), c1 = center(pins[pins.length - 1], top);
-    track.style.top = c0 + "px"; track.style.height = (c1 - c0) + "px";
-    var read = window.innerHeight * 0.5 - top;
-    var f = Math.max(0, Math.min(c1 - c0, read - c0));
-    fill.style.height = f + "px"; dot.style.top = f + "px";
-    dot.classList.toggle("show", f > 0 && f < c1 - c0);
-    pins.forEach(function(p){ p.classList.toggle("on", read >= center(p, top) - 4); });
-  }
-  function queue(){ if (!queued){ queued = true; requestAnimationFrame(updateRail); } }
-  window.addEventListener("scroll", queue, { passive: true });
-  window.addEventListener("resize", queue);
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(queue);
-  updateRail();
+  window.addEventListener("resize", function(){ layout(); moveInd(); });
+  if (window.ResizeObserver) new ResizeObserver(layout).observe(pipe);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(function(){ layout(); moveInd(); });
+
+  render(false);
+  select((location.hash || "").slice(1) || "explain", false);
+  schedule();
 })();
 </script>
 
